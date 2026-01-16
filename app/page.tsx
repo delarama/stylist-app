@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { supabase } from "@/lib/supabase";
 export default function BrowsePage() {
+
   return (
     <div className="mx-auto max-w-md bg-white px-5 pt-6 pb-24">
       <h1 className="text-4xl font-extrabold leading-none tracking-tight text-neutral-900">
