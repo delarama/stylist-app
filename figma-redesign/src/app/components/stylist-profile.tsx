@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Star, MapPin, Award, Calendar, MessageCircle, Heart, Share2, Instagram, Facebook, Clock, DollarSign } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -54,12 +58,61 @@ const portfolioImages = [
 ];
 
 interface StylistProfileProps {
-  stylistId: number;
+  stylistId: number | string;
   onBack: () => void;
   onChat: () => void;
+  displayName?: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
 }
 
-export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProps) {
+export function StylistProfile({ 
+  stylistId, 
+  onBack, 
+  onChat,
+  displayName = "Sophia Martinez",
+  bio = null,
+  avatarUrl = "https://images.unsplash.com/photo-1737063935340-f9af0940c4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoYWlyc3R5bGlzdCUyMHdvbWFufGVufDF8fHx8MTc3MDI3NzYxM3ww&ixlib=rb-4.1.0&q=80&w=1080"
+}: StylistProfileProps) {
+  const router = useRouter();
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleStartChat = async () => {
+    setChatError(null);
+    setIsStartingChat(true);
+
+    try {
+      const res = await fetch("/api/chats/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ stylist_id: stylistId }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        if (res.status === 401 || data.error === "NOT_SIGNED_IN") {
+          setChatError("Please sign in to start a chat.");
+        } else {
+          setChatError(data.error || "Failed to start chat. Please try again.");
+        }
+        setIsStartingChat(false);
+        return;
+      }
+
+      // Navigate to the chat
+      router.push(`/chats/${data.chat_id}`);
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      setChatError("Failed to start chat. Please try again.");
+      setIsStartingChat(false);
+    }
+  };
+
   const ratingBreakdown = [
     { stars: 5, percentage: 85 },
     { stars: 4, percentage: 10 },
@@ -99,8 +152,8 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
               <div className="relative mx-auto sm:mx-0">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-muted">
                   <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1737063935340-f9af0940c4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoYWlyc3R5bGlzdCUyMHdvbWFufGVufDF8fHx8MTc3MDI3NzYxM3ww&ixlib=rb-4.1.0&q=80&w=1080"
-                    alt="Sophia Martinez"
+                    src={avatarUrl || undefined}
+                    alt={displayName}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -112,8 +165,8 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
               <div className="flex-1 text-center sm:text-left">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl mb-2">Sophia Martinez</h1>
-                    <p className="text-base sm:text-lg text-muted-foreground">Hair & Color Specialist</p>
+                    <h1 className="text-2xl sm:text-3xl mb-2">{displayName}</h1>
+                    <p className="text-base sm:text-lg text-muted-foreground">{bio || "Hair & Color Specialist"}</p>
                   </div>
                 </div>
                 
@@ -151,10 +204,20 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
 
             {/* Mobile Action Buttons */}
             <div className="flex gap-3 lg:hidden">
-              <Button size="lg" className="flex-1" onClick={onChat}>
-                <MessageCircle className="size-4 mr-2" />
-                Message
-              </Button>
+              <div className="flex-1">
+                <Button 
+                  size="lg" 
+                  className="w-full" 
+                  onClick={handleStartChat}
+                  disabled={isStartingChat}
+                >
+                  <MessageCircle className="size-4 mr-2" />
+                  {isStartingChat ? "Starting..." : "Message"}
+                </Button>
+                {chatError && (
+                  <p className="mt-2 text-sm text-destructive text-center">{chatError}</p>
+                )}
+              </div>
               <Button size="lg" variant="outline" className="flex-1">
                 <Calendar className="size-4 mr-2" />
                 Book
@@ -174,7 +237,7 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
                 <Card className="p-4 sm:p-6">
                   <h3 className="mb-3 sm:mb-4 text-base sm:text-lg">About Me</h3>
                   <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    With over 10 years of experience in the beauty industry, I specialize in creating stunning hair transformations that enhance your natural beauty. My expertise includes precision cutting, advanced color techniques, and bridal styling. I'm passionate about staying current with the latest trends and techniques to give you the best possible experience.
+                    {bio || "With over 10 years of experience in the beauty industry, I specialize in creating stunning hair transformations that enhance your natural beauty. My expertise includes precision cutting, advanced color techniques, and bridal styling. I'm passionate about staying current with the latest trends and techniques to give you the best possible experience."}
                   </p>
                 </Card>
 
@@ -337,10 +400,20 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
           <div className="hidden lg:block space-y-4">
             <Card className="p-6 sticky top-24">
               <div className="space-y-4">
-                <Button size="lg" className="w-full" onClick={onChat}>
-                  <MessageCircle className="size-4 mr-2" />
-                  Message Sophia
-                </Button>
+                <div>
+                  <Button 
+                    size="lg" 
+                    className="w-full" 
+                    onClick={handleStartChat}
+                    disabled={isStartingChat}
+                  >
+                    <MessageCircle className="size-4 mr-2" />
+                    {isStartingChat ? "Starting..." : `Message ${displayName.split(" ")[0]}`}
+                  </Button>
+                  {chatError && (
+                    <p className="mt-2 text-sm text-destructive text-center">{chatError}</p>
+                  )}
+                </div>
                 <Button size="lg" variant="outline" className="w-full">
                   <Calendar className="size-4 mr-2" />
                   Book Appointment

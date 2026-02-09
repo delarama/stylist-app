@@ -16,6 +16,8 @@ import {
   CreditCard,
   Heart,
   Star,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -26,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar"
 import { Switch } from "@/app/components/ui/switch";
 import { Separator } from "@/app/components/ui/separator";
 import { Badge } from "@/app/components/ui/badge";
+import { Textarea } from "@/app/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/ImageWithFallback";
 
@@ -39,6 +42,28 @@ interface ProfileData {
   location?: string;
   categories?: string[];
   created_at?: string;
+  is_stylist?: boolean;
+  specialties?: string[];
+}
+
+// Helper function to extract useful error information from Supabase errors
+function logSupabaseError(context: string, error: any) {
+  const errorInfo = {
+    message: error?.message || "Unknown error",
+    details: error?.details || null,
+    hint: error?.hint || null,
+    code: error?.code || null,
+  };
+  
+  console.error(`Error ${context}:`, {
+    message: errorInfo.message,
+    details: errorInfo.details,
+    hint: errorInfo.hint,
+    code: errorInfo.code,
+    fullError: error,
+  });
+  
+  return errorInfo;
 }
 
 export default function ProfilePage() {
@@ -48,6 +73,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     display_name: "",
     bio: "",
@@ -55,8 +81,17 @@ export default function ProfilePage() {
     phone: "",
     location: "",
   });
+  const [isStylist, setIsStylist] = useState(false);
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Specialty options matching Browse filter options
+  const specialtyOptions = [
+    { id: "hair", label: "Hair Stylists" },
+    { id: "fashion", label: "Fashion Stylists" },
+    { id: "makeup", label: "Makeup Artists" },
+  ];
 
   useEffect(() => {
     async function loadProfile() {
@@ -75,12 +110,13 @@ export default function ProfilePage() {
         // Fetch profile from profiles table
         const { data: profileData, error } = await supabase
           .from("profiles")
-          .select("id, display_name, bio, avatar_url, created_at")
+          .select("id, display_name, bio, avatar_url, created_at, is_stylist, specialties")
           .eq("id", user.id)
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching profile:", error);
+          const errorInfo = logSupabaseError("fetching profile", error);
+          setError(errorInfo.message || "Failed to load profile. Please try again.");
           return;
         }
 
@@ -93,6 +129,8 @@ export default function ProfilePage() {
             phone: "", // TODO: Add phone field to profiles table if needed
             location: "", // TODO: Add location field to profiles table if needed
           });
+          setIsStylist(profileData.is_stylist || false);
+          setSelectedSpecialties(profileData.specialties || []);
         } else {
           // Create profile if it doesn't exist
           const { data: newProfile, error: createError } = await supabase
@@ -105,7 +143,8 @@ export default function ProfilePage() {
             .single();
 
           if (createError) {
-            console.error("Error creating profile:", createError);
+            const errorInfo = logSupabaseError("creating profile", createError);
+            setError(errorInfo.message || "Failed to create profile. Please try again.");
             return;
           }
 
@@ -118,10 +157,19 @@ export default function ProfilePage() {
               phone: "",
               location: "",
             });
+            setIsStylist(newProfile.is_stylist || false);
+            setSelectedSpecialties(newProfile.specialties || []);
           }
         }
-      } catch (error) {
-        console.error("Error loading profile:", error);
+      } catch (error: any) {
+        // Handle unexpected errors (not Supabase errors)
+        const errorMessage = error?.message || String(error) || "An unexpected error occurred";
+        console.error("Error loading profile:", {
+          message: errorMessage,
+          stack: error?.stack,
+          fullError: error,
+        });
+        setError(errorMessage || "Failed to load profile. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -178,10 +226,16 @@ export default function ProfilePage() {
       }
 
       setProfile({ ...profile, avatar_url: publicUrl });
-    } catch (error) {
-      console.error("Error handling avatar change:", error);
-      setAvatarPreview(null);
-    } finally {
+        } catch (error: any) {
+          const errorMessage = error?.message || String(error) || "An unexpected error occurred";
+          console.error("Error handling avatar change:", {
+            message: errorMessage,
+            stack: error?.stack,
+            fullError: error,
+          });
+          setError(errorMessage || "Failed to upload avatar. Please try again.");
+          setAvatarPreview(null);
+        } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -198,23 +252,38 @@ export default function ProfilePage() {
         .update({
           display_name: formData.display_name || null,
           bio: formData.bio || null,
+          is_stylist: isStylist,
+          specialties: selectedSpecialties.length > 0 ? selectedSpecialties : null,
           // TODO: Add categories, phone, location fields if they exist in the table
         })
         .eq("id", profile.id);
 
       if (error) {
-        console.error("Error saving profile:", error);
+        const errorInfo = logSupabaseError("saving profile", error);
+        setError(errorInfo.message || "Failed to save profile. Please try again.");
         return;
       }
+
+      // Clear any previous errors on successful save
+      setError(null);
 
       setProfile({
         ...profile,
         display_name: formData.display_name,
         bio: formData.bio,
+        is_stylist: isStylist,
+        specialties: selectedSpecialties,
       });
       setIsEditing(false);
-    } catch (error) {
-      console.error("Error saving profile:", error);
+    } catch (error: any) {
+      // Handle unexpected errors (not Supabase errors)
+      const errorMessage = error?.message || String(error) || "An unexpected error occurred";
+      console.error("Error saving profile:", {
+        message: errorMessage,
+        stack: error?.stack,
+        fullError: error,
+      });
+      setError(errorMessage || "Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -229,9 +298,19 @@ export default function ProfilePage() {
         phone: "",
         location: "",
       });
+      setIsStylist(profile.is_stylist || false);
+      setSelectedSpecialties(profile.specialties || []);
     }
     setAvatarPreview(null);
     setIsEditing(false);
+  };
+
+  const toggleSpecialty = (specialtyId: string) => {
+    setSelectedSpecialties((prev) =>
+      prev.includes(specialtyId)
+        ? prev.filter((id) => id !== specialtyId)
+        : [...prev, specialtyId]
+    );
   };
 
   if (loading) {
@@ -246,9 +325,14 @@ export default function ProfilePage() {
     return (
       <div className="mx-auto max-w-md bg-background min-h-screen px-5 py-6">
         <h1 className="text-2xl font-extrabold mb-2">Profile not found</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mb-4">
           Unable to load your profile. Please try again.
         </p>
+        {error && (
+          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -304,6 +388,21 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 sm:px-6 py-8">
+        {/* Error Display */}
+        {error && (
+          <Card className="p-4 mb-6 bg-destructive/10 border-destructive/20">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setError(null)}
+              className="mt-2 h-auto p-0 text-destructive hover:text-destructive/80"
+            >
+              Dismiss
+            </Button>
+          </Card>
+        )}
+
         {/* Profile Header */}
         <Card className="p-6 sm:p-8 mb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -353,6 +452,22 @@ export default function ProfilePage() {
                   <Star className="size-3 fill-amber-400 text-amber-400" />
                   Verified Member
                 </Badge>
+                {isStylist && (
+                  <Badge className="gap-1.5 bg-gradient-to-r from-primary to-primary/80">
+                    <Sparkles className="size-3" />
+                    Active Stylist
+                  </Badge>
+                )}
+                {isStylist && selectedSpecialties.length > 0 && (
+                  selectedSpecialties.map((specId) => {
+                    const spec = specialtyOptions.find((s) => s.id === specId);
+                    return spec ? (
+                      <Badge key={specId} variant="outline">
+                        {spec.label}
+                      </Badge>
+                    ) : null;
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -360,9 +475,15 @@ export default function ProfilePage() {
 
         {/* Tabs */}
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 mb-8">
+          <TabsList className="w-full mb-8 flex-wrap">
             <TabsTrigger value="personal" className="text-xs sm:text-sm">
-              Personal Info
+              Personal
+            </TabsTrigger>
+            <TabsTrigger value="stylist" className="text-xs sm:text-sm relative">
+              Stylist
+              {isStylist && selectedSpecialties.length === 0 && (
+                <span className="absolute -top-1 -right-1 size-2 bg-amber-500 rounded-full" />
+              )}
             </TabsTrigger>
             <TabsTrigger value="preferences" className="text-xs sm:text-sm">
               Preferences
@@ -434,6 +555,31 @@ export default function ProfilePage() {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Stylist Settings Tab */}
+          <TabsContent value="stylist">
+            <div className="space-y-4 sm:space-y-6">
+              {/* Become a Stylist Toggle */}
+              <Card className="p-4 sm:p-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="size-5 text-primary" />
+                      <h3 className="text-lg sm:text-xl">Offer Services as a Stylist</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Enable this to appear in the marketplace and start connecting with clients
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isStylist}
+                    onCheckedChange={setIsStylist}
+                    className="shrink-0"
+                  />
+                </div>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Preferences Tab */}

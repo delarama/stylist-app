@@ -34,6 +34,13 @@ export default function WalletPage() {
         cache: "no-store",
       });
 
+      // Handle 401 as signed-out state (no error, just no balance)
+      if (res.status === 401) {
+        setMinutesBalance(0);
+        setLoading(false);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
@@ -48,6 +55,11 @@ export default function WalletPage() {
       }
 
       if (!data.ok) {
+        // Don't show error for NOT_SIGNED_IN (should be handled by 401 check above, but just in case)
+        if (data.error === "NOT_SIGNED_IN") {
+          setMinutesBalance(0);
+          return;
+        }
         setError(data.error || "Failed to load wallet balance");
         return;
       }

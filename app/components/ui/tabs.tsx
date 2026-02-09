@@ -53,7 +53,7 @@ function TabsList({
   return (
     <div
       className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-full items-center justify-center rounded-xl p-[3px] flex",
+        "flex flex-wrap gap-2 rounded-full bg-muted p-1",
         className
       )}
       {...props}
@@ -83,10 +83,10 @@ function TabsTrigger({
       type="button"
       onClick={() => context.onValueChange(value)}
       className={cn(
-        "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+        "px-4 py-2 text-sm font-medium rounded-full flex items-center justify-center leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 whitespace-nowrap",
         isActive
-          ? "bg-card text-foreground border-input"
-          : "text-foreground hover:text-foreground/80",
+          ? "bg-white shadow-sm text-foreground"
+          : "text-muted-foreground",
         className
       )}
       {...props}

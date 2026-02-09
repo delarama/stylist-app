@@ -13,10 +13,11 @@ export const dynamic = 'force-dynamic';
 async function getProfilesWithStats() {
   const supabase = await supabaseServer();
   
-  // Fetch profiles
+  // Fetch profiles - only show stylists (is_stylist = true)
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, display_name, headline, avatar_url, created_at")
+    .select("id, display_name, headline, avatar_url, created_at, specialties")
+    .eq("is_stylist", true)
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -159,7 +160,7 @@ export default async function BrowsePage() {
               const avatarUrl = p.avatar_url && p.avatar_url.trim() !== '' ? p.avatar_url : null;
 
               return (
-                <Link key={p.id ?? id} href={`/stylist/${id}`} className="w-full">
+                <Link key={p.id} href={`/stylist/${p.id}`} className="w-full">
                   <Card
                     className="overflow-hidden cursor-pointer group hover:shadow-xl transition-all duration-300 border-border/50 w-full"
                   >
