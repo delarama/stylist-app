@@ -11,6 +11,8 @@ import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { Plus, Grid3X3 } from "lucide-react";
 
 interface FavoriteStylist {
   id: number;

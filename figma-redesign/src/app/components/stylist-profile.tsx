@@ -1,8 +1,5 @@
-"use client";
-
+import { ArrowLeft, Star, MapPin, Award, MessageCircle, Heart, Share2, Clock, DollarSign, Grid3X3, Bookmark } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Star, MapPin, Award, Calendar, MessageCircle, Heart, Share2, Instagram, Facebook, Clock, DollarSign } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
@@ -18,7 +15,15 @@ interface Review {
   rating: number;
   date: string;
   comment: string;
-  images?: string[];
+}
+
+interface Post {
+  id: number;
+  image: string;
+  caption: string;
+  likes: number;
+  comments: number;
+  timestamp: string;
 }
 
 const reviews: Review[] = [
@@ -48,70 +53,89 @@ const reviews: Review[] = [
   }
 ];
 
-const portfolioImages = [
-  "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800",
-  "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800",
-  "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=800",
-  "https://images.unsplash.com/photo-1595475884562-073c8b8072f2?w=800",
-  "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=800",
-  "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800"
+const stylistPosts: Post[] = [
+  {
+    id: 1,
+    image: "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&q=80",
+    caption: "Balayage magic ✨ Creating natural dimension with warm caramel tones.",
+    likes: 342,
+    comments: 28,
+    timestamp: "2 hours ago"
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800",
+    caption: "Sunset hair transformation 🌅 From brunette to copper goddess!",
+    likes: 521,
+    comments: 43,
+    timestamp: "1 day ago"
+  },
+  {
+    id: 3,
+    image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800",
+    caption: "Textured bob perfection 💇‍♀️ #haircut #bob #hairstyle",
+    likes: 298,
+    comments: 19,
+    timestamp: "3 days ago"
+  },
+  {
+    id: 4,
+    image: "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=800",
+    caption: "Bridal hair goals 👰✨ Soft romantic waves for yesterday's beautiful bride",
+    likes: 687,
+    comments: 52,
+    timestamp: "5 days ago"
+  },
+  {
+    id: 5,
+    image: "https://images.unsplash.com/photo-1595475884562-073c8b8072f2?w=800",
+    caption: "Color correction transformation! Patience and skill pay off 🎨",
+    likes: 892,
+    comments: 76,
+    timestamp: "1 week ago"
+  },
+  {
+    id: 6,
+    image: "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=800",
+    caption: "Extensions installed! Added length and volume for this beauty 💫",
+    likes: 445,
+    comments: 34,
+    timestamp: "1 week ago"
+  },
+  {
+    id: 7,
+    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800",
+    caption: "Before and after highlights ☀️ Love how this turned out!",
+    likes: 612,
+    comments: 41,
+    timestamp: "2 weeks ago"
+  },
+  {
+    id: 8,
+    image: "https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800",
+    caption: "Styling tips: How to maintain your color at home 💡",
+    likes: 378,
+    comments: 29,
+    timestamp: "2 weeks ago"
+  },
+  {
+    id: 9,
+    image: "https://images.unsplash.com/photo-1522337094846-8a818192de1f?w=800",
+    caption: "Curly hair care routine essentials 🌀 Swipe for product recs",
+    likes: 534,
+    comments: 48,
+    timestamp: "3 weeks ago"
+  }
 ];
 
 interface StylistProfileProps {
-  stylistId: number | string;
+  stylistId: number;
   onBack: () => void;
   onChat: () => void;
-  displayName?: string;
-  bio?: string | null;
-  avatarUrl?: string | null;
 }
 
-export function StylistProfile({ 
-  stylistId, 
-  onBack, 
-  onChat,
-  displayName = "Sophia Martinez",
-  bio = null,
-  avatarUrl = "https://images.unsplash.com/photo-1737063935340-f9af0940c4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoYWlyc3R5bGlzdCUyMHdvbWFufGVufDF8fHx8MTc3MDI3NzYxM3ww&ixlib=rb-4.1.0&q=80&w=1080"
-}: StylistProfileProps) {
-  const router = useRouter();
-  const [chatError, setChatError] = useState<string | null>(null);
-  const [isStartingChat, setIsStartingChat] = useState(false);
-
-  const handleStartChat = async () => {
-    setChatError(null);
-    setIsStartingChat(true);
-
-    try {
-      const res = await fetch("/api/chats/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ stylist_id: stylistId }),
-        credentials: "include",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
-        if (res.status === 401 || data.error === "NOT_SIGNED_IN") {
-          setChatError("Please sign in to start a chat.");
-        } else {
-          setChatError(data.error || "Failed to start chat. Please try again.");
-        }
-        setIsStartingChat(false);
-        return;
-      }
-
-      // Navigate to the chat
-      router.push(`/chats/${data.chat_id}`);
-    } catch (error) {
-      console.error("Error starting chat:", error);
-      setChatError("Failed to start chat. Please try again.");
-      setIsStartingChat(false);
-    }
-  };
+export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProps) {
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const ratingBreakdown = [
     { stars: 5, percentage: 85 },
@@ -125,7 +149,7 @@ export function StylistProfile({
     <div className="min-h-screen bg-background pb-20 sm:pb-0">
       {/* Header */}
       <div className="border-b sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 sm:py-4">
+        <div className="max-w-5xl mx-auto px-4 py-3 sm:px-6 lg:px-8 sm:py-4">
           <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={onBack} className="gap-2 -ml-2 sm:ml-0">
               <ArrowLeft className="size-4" />
@@ -143,323 +167,296 @@ export function StylistProfile({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-            {/* Profile Header */}
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-              <div className="relative mx-auto sm:mx-0">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-muted">
-                  <ImageWithFallback
-                    src={avatarUrl || undefined}
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -bottom-2 -right-2 bg-background rounded-full p-2 shadow-lg border">
-                  <Award className="size-4 sm:size-5 text-primary" />
-                </div>
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
+        {/* Profile Header */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
+          <div className="relative">
+            <Avatar className="w-24 h-24 sm:w-32 sm:h-32 ring-4 ring-primary/10">
+              <AvatarImage 
+                src="https://images.unsplash.com/photo-1737063935340-f9af0940c4c5?w=200" 
+                alt="Sophia Martinez" 
+              />
+              <AvatarFallback>SM</AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-2 -right-2 bg-background rounded-full p-2 shadow-lg border-2 border-background">
+              <Award className="size-4 sm:size-5 text-primary" />
+            </div>
+          </div>
+          
+          <div className="flex-1 text-center sm:text-left">
+            <h1 className="text-2xl sm:text-3xl mb-2">Sophia Martinez</h1>
+            <p className="text-base text-muted-foreground mb-4">Hair & Color Specialist</p>
+            
+            {/* Stats */}
+            <div className="flex items-center justify-center sm:justify-start gap-6 mb-4">
+              <div className="text-center">
+                <div className="font-semibold text-lg">{stylistPosts.length}</div>
+                <div className="text-sm text-muted-foreground">Posts</div>
               </div>
-              
-              <div className="flex-1 text-center sm:text-left">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3">
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl mb-2">{displayName}</h1>
-                    <p className="text-base sm:text-lg text-muted-foreground">{bio || "Hair & Color Specialist"}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="size-4 sm:size-5 fill-amber-400 text-amber-400" />
-                    <span className="text-base sm:text-lg">4.9</span>
-                    <span className="text-sm sm:text-base text-muted-foreground">(127 reviews)</span>
-                  </div>
-                  <Badge variant="secondary" className="gap-1.5 text-xs sm:text-sm">
-                    <Award className="size-3" />
-                    Verified Pro
-                  </Badge>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-4" />
-                    New York, NY
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="size-4" />
-                    Usually responds in 2h
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <Badge variant="outline" className="text-xs sm:text-sm">Balayage</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">Extensions</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">Bridal</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">Color Correction</Badge>
-                </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg">2.4k</div>
+                <div className="text-sm text-muted-foreground">Followers</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg">127</div>
+                <div className="text-sm text-muted-foreground">Reviews</div>
               </div>
             </div>
 
-            {/* Mobile Action Buttons */}
-            <div className="flex gap-3 lg:hidden">
-              <div className="flex-1">
-                <Button 
-                  size="lg" 
-                  className="w-full" 
-                  onClick={handleStartChat}
-                  disabled={isStartingChat}
-                >
-                  <MessageCircle className="size-4 mr-2" />
-                  {isStartingChat ? "Starting..." : "Message"}
-                </Button>
-                {chatError && (
-                  <p className="mt-2 text-sm text-destructive text-center">{chatError}</p>
-                )}
+            {/* Rating */}
+            <div className="flex items-center justify-center sm:justify-start gap-2 mb-4">
+              <div className="flex items-center gap-1">
+                <Star className="size-5 fill-amber-400 text-amber-400" />
+                <span className="text-lg font-semibold">4.9</span>
               </div>
-              <Button size="lg" variant="outline" className="flex-1">
-                <Calendar className="size-4 mr-2" />
-                Book
+              <Badge variant="secondary" className="gap-1.5">
+                <Award className="size-3" />
+                Verified Pro
+              </Badge>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-muted-foreground mb-6">
+              <div className="flex items-center gap-2">
+                <MapPin className="size-4" />
+                New York, NY
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="size-4" />
+                Responds in 2h
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="size-4" />
+                $85/hour
+              </div>
+            </div>
+
+            {/* Bio */}
+            <p className="text-sm mb-6 max-w-2xl">
+              ✨ Hair & Color Specialist | NYC
+              <br />
+              💇‍♀️ Balayage • Extensions • Bridal
+              <br />
+              📧 DM for bookings
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button onClick={onChat} size="lg" className="flex-1 sm:flex-initial gap-2">
+                <MessageCircle className="size-4" />
+                Message
+              </Button>
+              <Button variant="outline" size="lg" className="flex-1 sm:flex-initial">
+                Follow
               </Button>
             </div>
-
-            {/* Tabs */}
-            <Tabs defaultValue="about" className="w-full">
-              <TabsList className="w-full grid grid-cols-3 mb-6 sm:mb-8">
-                <TabsTrigger value="about" className="text-xs sm:text-sm">About</TabsTrigger>
-                <TabsTrigger value="portfolio" className="text-xs sm:text-sm">Portfolio</TabsTrigger>
-                <TabsTrigger value="reviews" className="text-xs sm:text-sm">Reviews</TabsTrigger>
-              </TabsList>
-
-              {/* About Tab */}
-              <TabsContent value="about" className="space-y-4 sm:space-y-6">
-                <Card className="p-4 sm:p-6">
-                  <h3 className="mb-3 sm:mb-4 text-base sm:text-lg">About Me</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    {bio || "With over 10 years of experience in the beauty industry, I specialize in creating stunning hair transformations that enhance your natural beauty. My expertise includes precision cutting, advanced color techniques, and bridal styling. I'm passionate about staying current with the latest trends and techniques to give you the best possible experience."}
-                  </p>
-                </Card>
-
-                <Card className="p-4 sm:p-6">
-                  <h3 className="mb-3 sm:mb-4 text-base sm:text-lg">Experience & Credentials</h3>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex gap-3 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Award className="size-4 sm:size-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="mb-1 text-sm sm:text-base">Master Stylist Certification</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Vidal Sassoon Academy - 2015</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Award className="size-4 sm:size-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="mb-1 text-sm sm:text-base">Advanced Color Theory</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Redken Education - 2018</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Award className="size-4 sm:size-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="mb-1 text-sm sm:text-base">Bridal Styling Specialist</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">International Beauty Academy - 2019</p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 sm:p-6">
-                  <h3 className="mb-3 sm:mb-4 text-base sm:text-lg">Services & Pricing</h3>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex items-center justify-between pb-3 sm:pb-4 border-b">
-                      <div>
-                        <h4 className="text-sm sm:text-base">Women's Haircut</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Precision cut with styling</p>
-                      </div>
-                      <span className="text-base sm:text-lg">$85</span>
-                    </div>
-                    <div className="flex items-center justify-between pb-3 sm:pb-4 border-b">
-                      <div>
-                        <h4 className="text-sm sm:text-base">Balayage / Highlights</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Custom color placement</p>
-                      </div>
-                      <span className="text-base sm:text-lg">$250+</span>
-                    </div>
-                    <div className="flex items-center justify-between pb-3 sm:pb-4 border-b">
-                      <div>
-                        <h4 className="text-sm sm:text-base">Full Color</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">All-over color treatment</p>
-                      </div>
-                      <span className="text-base sm:text-lg">$150</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm sm:text-base">Bridal Package</h4>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Trial + wedding day styling</p>
-                      </div>
-                      <span className="text-base sm:text-lg">$450</span>
-                    </div>
-                  </div>
-                </Card>
-              </TabsContent>
-
-              {/* Portfolio Tab */}
-              <TabsContent value="portfolio">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {portfolioImages.map((image, index) => (
-                    <div key={index} className="aspect-square rounded-lg sm:rounded-xl overflow-hidden bg-muted cursor-pointer group">
-                      <ImageWithFallback
-                        src={image}
-                        alt={`Portfolio ${index + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              {/* Reviews Tab */}
-              <TabsContent value="reviews" className="space-y-4 sm:space-y-6">
-                {/* Rating Overview */}
-                <Card className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
-                    <div className="text-center sm:text-left">
-                      <div className="text-4xl sm:text-5xl mb-2">4.9</div>
-                      <div className="flex items-center justify-center sm:justify-start gap-1 mb-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="size-4 sm:size-5 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Based on 127 reviews</p>
-                    </div>
-                    
-                    <div className="flex-1 space-y-2">
-                      {ratingBreakdown.map((item) => (
-                        <div key={item.stars} className="flex items-center gap-2 sm:gap-3">
-                          <div className="flex items-center gap-1 w-10 sm:w-12">
-                            <span className="text-xs sm:text-sm">{item.stars}</span>
-                            <Star className="size-3 fill-amber-400 text-amber-400" />
-                          </div>
-                          <Progress value={item.percentage} className="flex-1 h-2" />
-                          <span className="text-xs sm:text-sm text-muted-foreground w-10 sm:w-12 text-right">
-                            {item.percentage}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Reviews List */}
-                <div className="space-y-3 sm:space-y-4">
-                  {reviews.map((review) => (
-                    <Card key={review.id} className="p-4 sm:p-6">
-                      <div className="flex gap-3 sm:gap-4">
-                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
-                          <AvatarImage src={review.avatar} alt={review.author} />
-                          <AvatarFallback>{review.author[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="mb-1 text-sm sm:text-base">{review.author}</h4>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <div className="flex gap-0.5">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star 
-                                      key={star} 
-                                      className={`size-3 sm:size-4 ${
-                                        star <= review.rating 
-                                          ? 'fill-amber-400 text-amber-400' 
-                                          : 'text-muted-foreground/30'
-                                      }`} 
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-xs sm:text-sm text-muted-foreground">{review.date}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
           </div>
+        </div>
 
-          {/* Sidebar - Desktop Only */}
-          <div className="hidden lg:block space-y-4">
-            <Card className="p-6 sticky top-24">
+        {/* Tabs */}
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className="w-full grid grid-cols-3 mb-6">
+            <TabsTrigger value="posts" className="gap-2">
+              <Grid3X3 className="size-4" />
+              <span className="hidden sm:inline">Posts</span>
+            </TabsTrigger>
+            <TabsTrigger value="about" className="gap-2">
+              About
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="gap-2">
+              Reviews ({reviews.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Posts Tab */}
+          <TabsContent value="posts" className="mt-0">
+            <div className="grid grid-cols-3 gap-1 sm:gap-2">
+              {stylistPosts.map((post) => (
+                <button
+                  key={post.id}
+                  onClick={() => setSelectedPost(post)}
+                  className="aspect-square bg-muted overflow-hidden group relative"
+                >
+                  <ImageWithFallback
+                    src={post.image}
+                    alt="Post"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex items-center gap-4 text-white text-sm">
+                      <div className="flex items-center gap-1">
+                        <Heart className="size-5 fill-white" />
+                        <span>{post.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="size-5 fill-white" />
+                        <span>{post.comments}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* About Tab */}
+          <TabsContent value="about">
+            <Card className="p-6">
+              <h3 className="text-xl mb-4">About</h3>
               <div className="space-y-4">
                 <div>
-                  <Button 
-                    size="lg" 
-                    className="w-full" 
-                    onClick={handleStartChat}
-                    disabled={isStartingChat}
-                  >
-                    <MessageCircle className="size-4 mr-2" />
-                    {isStartingChat ? "Starting..." : `Message ${displayName.split(" ")[0]}`}
-                  </Button>
-                  {chatError && (
-                    <p className="mt-2 text-sm text-destructive text-center">{chatError}</p>
-                  )}
+                  <h4 className="font-medium mb-2">Specialties</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">Balayage</Badge>
+                    <Badge variant="secondary">Hair Extensions</Badge>
+                    <Badge variant="secondary">Bridal Hair</Badge>
+                    <Badge variant="secondary">Color Correction</Badge>
+                    <Badge variant="secondary">Highlights</Badge>
+                  </div>
                 </div>
-                <Button size="lg" variant="outline" className="w-full">
-                  <Calendar className="size-4 mr-2" />
-                  Book Appointment
-                </Button>
                 
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="text-sm">Connect</h4>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="flex-1">
-                      <Instagram className="size-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="flex-1">
-                      <Facebook className="size-4" />
-                    </Button>
-                  </div>
+                <div>
+                  <h4 className="font-medium mb-2">Experience</h4>
+                  <p className="text-muted-foreground">
+                    With over 8 years of experience in the beauty industry, I specialize in creating natural-looking color transformations and textured cuts. I'm passionate about helping clients feel confident and beautiful.
+                  </p>
                 </div>
 
-                <div className="pt-4 border-t space-y-3">
-                  <h4 className="text-sm">Availability</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Monday - Friday</span>
-                      <span>9am - 7pm</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Saturday</span>
-                      <span>10am - 6pm</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sunday</span>
-                      <span>Closed</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <DollarSign className="size-4" />
-                    <span>Starting from $85 per service</span>
-                  </div>
+                <div>
+                  <h4 className="font-medium mb-2">Certifications</h4>
+                  <ul className="text-muted-foreground space-y-1">
+                    <li>• Advanced Balayage Specialist</li>
+                    <li>• Hair Extension Certified</li>
+                    <li>• Olaplex Certified Professional</li>
+                  </ul>
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Reviews Tab */}
+          <TabsContent value="reviews">
+            <div className="space-y-6">
+              {/* Rating Overview */}
+              <Card className="p-6">
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <div className="text-center sm:text-left">
+                    <div className="text-5xl font-bold mb-2">4.9</div>
+                    <div className="flex items-center gap-1 justify-center sm:justify-start mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} className="size-5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{reviews.length} reviews</p>
+                  </div>
+                  
+                  <div className="flex-1 space-y-2">
+                    {ratingBreakdown.map((rating) => (
+                      <div key={rating.stars} className="flex items-center gap-3">
+                        <div className="flex items-center gap-1 w-12">
+                          <span className="text-sm">{rating.stars}</span>
+                          <Star className="size-3 fill-amber-400 text-amber-400" />
+                        </div>
+                        <Progress value={rating.percentage} className="flex-1 h-2" />
+                        <span className="text-sm text-muted-foreground w-12">{rating.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Individual Reviews */}
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <Card key={review.id} className="p-6">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={review.avatar} alt={review.author} />
+                        <AvatarFallback>{review.author[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium">{review.author}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`size-3 ${
+                                      star <= review.rating
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'text-muted-foreground'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-muted-foreground">{review.date}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{review.comment}</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div className="max-w-4xl w-full bg-background rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              <div className="aspect-square bg-muted">
+                <ImageWithFallback
+                  src={selectedPost.image}
+                  alt="Post"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-6 flex flex-col">
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia" />
+                    <AvatarFallback>SM</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h4 className="font-medium">Sophia Martinez</h4>
+                    <p className="text-xs text-muted-foreground">Hair & Color Specialist</p>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <p className="text-sm mb-4">{selectedPost.caption}</p>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>{selectedPost.likes} likes</span>
+                    <span>{selectedPost.comments} comments</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 uppercase">{selectedPost.timestamp}</p>
+                </div>
+                <div className="flex items-center gap-4 pt-4 border-t">
+                  <Button variant="ghost" size="sm" className="flex-1">
+                    <Heart className="size-4 mr-2" />
+                    Like
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1">
+                    <MessageCircle className="size-4 mr-2" />
+                    Comment
+                  </Button>
+                  <Button variant="ghost" size="icon">
+                    <Bookmark className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -17,11 +17,13 @@ export default async function StylistProfilePage({
 
   if (error || !profile) {
     return (
-      <div className="mx-auto max-w-md px-5 pt-6 pb-24 bg-white">
-        <h1 className="text-2xl font-extrabold text-neutral-900 mb-2">Stylist not found</h1>
-        <p className="text-sm text-neutral-400">
-          {error ? `Error: ${error.message}` : "No stylist found with this ID."}
-        </p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="px-4 pt-4">
+          <h1 className="text-2xl font-extrabold text-neutral-900 mb-2">Stylist not found</h1>
+          <p className="text-sm text-neutral-400">
+            {error ? `Error: ${error.message}` : "No stylist found with this ID."}
+          </p>
+        </div>
       </div>
     );
   }
@@ -29,11 +31,13 @@ export default async function StylistProfilePage({
   // Only show if is_stylist is true
   if (!profile.is_stylist) {
     return (
-      <div className="mx-auto max-w-md px-5 pt-6 pb-24 bg-white">
-        <h1 className="text-2xl font-extrabold text-neutral-900 mb-2">Not a stylist</h1>
-        <p className="text-sm text-neutral-400">
-          This profile is not set up as a stylist.
-        </p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="px-4 pt-4">
+          <h1 className="text-2xl font-extrabold text-neutral-900 mb-2">Not a stylist</h1>
+          <p className="text-sm text-neutral-400">
+            This profile is not set up as a stylist.
+          </p>
+        </div>
       </div>
     );
   }

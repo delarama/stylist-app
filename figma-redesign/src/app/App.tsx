@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Home, MessageCircle, Wallet as WalletIcon, User, Search } from "lucide-react";
 import { StylistBrowse } from "./components/stylist-browse";
 import { StylistProfile } from "./components/stylist-profile";
+import { SocialFeed } from "./components/social-feed";
 import { Chat } from "./components/chat";
 import { Wallet } from "./components/wallet";
 import { UserProfile } from "./components/user-profile";
@@ -12,15 +13,20 @@ import { Badge } from "./components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "./components/ui/sonner";
 
-type View = "browse" | "profile" | "chat" | "wallet" | "user-profile";
+type View = "feed" | "browse" | "profile" | "chat" | "wallet" | "user-profile";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<View>("browse");
+  const [currentView, setCurrentView] = useState<View>("feed");
   const [selectedStylistId, setSelectedStylistId] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState(25.00); // Low balance to demo paywall
   const [showRateReview, setShowRateReview] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [stylistToRate, setStylistToRate] = useState<{ id: number; name: string; avatar: string } | null>(null);
+  
+  // User stylist info (for post creation)
+  const [currentUserIsStylist, setCurrentUserIsStylist] = useState(true); // Demo: user is a stylist
+  const [currentUserName] = useState("Jessica Anderson");
+  const [currentUserSpecialty] = useState("Hair & Color Specialist");
   
   const unreadMessages = 2;
   const minimumChatBalance = 50.00; // Minimum required to start chat
@@ -82,6 +88,15 @@ export default function App() {
 
   const renderView = () => {
     switch (currentView) {
+      case "feed":
+        return (
+          <SocialFeed 
+            onStylistClick={handleStylistClick}
+            currentUserIsStylist={currentUserIsStylist}
+            currentUserName={currentUserName}
+            currentUserSpecialty={currentUserSpecialty}
+          />
+        );
       case "browse":
         return <StylistBrowse onStylistClick={handleStylistClick} />;
       case "profile":
@@ -123,6 +138,16 @@ export default function App() {
       <nav className="border-t bg-background/95 backdrop-blur-sm sticky bottom-0 z-20 safe-area-inset-bottom">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-around py-2 sm:py-3">
+            <Button
+              variant={currentView === "feed" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setCurrentView("feed")}
+              className="flex-col h-auto py-2 px-3 sm:px-4 gap-1"
+            >
+              <Home className="size-5" />
+              <span className="text-xs">Feed</span>
+            </Button>
+
             <Button
               variant={currentView === "browse" ? "default" : "ghost"}
               size="sm"

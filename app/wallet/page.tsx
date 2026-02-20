@@ -18,6 +18,7 @@ import { Card } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { PageShell } from "@/app/components/PageShell";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -93,35 +94,32 @@ export default function WalletPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 pb-24">
-      {/* Header - matches Figma */}
-      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:max-w-5xl lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-                className="-ml-2"
-              >
-                <ArrowLeft className="size-4" />
-              </Button>
-              <h1 className="text-2xl">Wallet</h1>
-            </div>
-            <Button variant="outline" className="gap-2">
-              <Download className="size-4" />
-              Export
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-4 sm:px-6 lg:max-w-5xl lg:px-8 py-8">
+    <PageShell
+      header={{
+        left: (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="-ml-2"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+        ),
+        center: <h1 className="text-2xl">Wallet</h1>,
+        right: (
+          <Button variant="outline" className="gap-2">
+            <Download className="size-4" />
+            Export
+          </Button>
+        ),
+      }}
+      className="py-8"
+    >
         {/* Balance Cards - Mobile-first: single column on mobile, grid on desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Main Balance */}
-          <Card className="w-full p-6 md:col-span-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
+          <Card className="w-full p-6 lg:col-span-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1 min-w-0">
                 <p className="text-primary-foreground/80 mb-2">Available Minutes</p>
@@ -267,7 +265,6 @@ export default function WalletPage() {
             </TabsContent>
           </Tabs>
         </Card>
-      </div>
-    </div>
+    </PageShell>
   );
 }

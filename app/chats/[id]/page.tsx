@@ -17,6 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/app/components/ui/avatar"
 import { supabase } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/ImageWithFallback";
 import { Card } from "@/app/components/ui/card";
+import { ChatsList } from "../ChatsList";
 
 interface Message {
   id: string;
@@ -253,7 +254,7 @@ export default function ChatConversationPage({
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-md bg-background min-h-screen flex items-center justify-center">
+      <div className="lg:h-full flex items-center justify-center p-4">
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
@@ -261,7 +262,7 @@ export default function ChatConversationPage({
 
   if (chatNotFound || !chatData) {
     return (
-      <div className="mx-auto max-w-md bg-background min-h-screen px-5 py-6">
+      <div className="lg:h-full flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-extrabold mb-2">Chat not found</h1>
         <p className="text-sm text-muted-foreground mb-4">
           This chat doesn't exist or you don't have access to it.
@@ -278,15 +279,36 @@ export default function ChatConversationPage({
   const stylistHeadline = stylistProfile?.headline || "Beauty · Fashion";
 
   return (
-    <div className="mx-auto max-w-md bg-background min-h-screen flex flex-col">
-      {/* Chat Header - matches Figma */}
-      <div className="p-4 border-b flex items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur shrink-0">
+    <>
+      {/* Left Panel - Always visible on desktop, hidden on mobile */}
+      <div className="hidden lg:block lg:border-r lg:border-neutral-200 lg:overflow-y-auto lg:h-full">
+        <div className="px-4 pt-6 pb-6">
+          <div className="grid grid-cols-3 items-center mb-4">
+            <div className="justify-self-start" />
+            <h1 className="justify-self-start text-lg font-semibold">Messages</h1>
+            <div className="justify-self-end" />
+          </div>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search messages..."
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-black/10 focus:border-black/20 transition"
+            />
+          </div>
+          <ChatsList />
+        </div>
+      </div>
+
+      {/* Right Panel - Conversation */}
+      <div className="lg:h-full lg:flex lg:flex-col min-h-screen lg:min-h-0 pb-24 lg:pb-0">
+        {/* Chat Header */}
+        <div className="p-4 border-b flex items-center justify-between shrink-0 bg-background/80 backdrop-blur sticky top-0 z-10 lg:relative lg:z-auto">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="sm:hidden -ml-2"
+            className="lg:hidden -ml-2"
           >
             <ArrowLeft className="size-4" />
           </Button>
@@ -323,74 +345,72 @@ export default function ChatConversationPage({
         </div>
       </div>
 
-      {/* Messages - matches Figma */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-36">
-        <div className="space-y-4 max-w-3xl mx-auto">
-          {messages.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">
-                No messages yet. Start the conversation!
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+        {/* Messages Container */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 w-full">
+          <div className="space-y-4 max-w-full">
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">
+                  No messages yet. Start the conversation!
+                </p>
+              </div>
+            ) : (
+              messages.map((message) => (
                 <div
-                  className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
-                    message.sender === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                  key={message.id}
+                  className={`flex ${
+                    message.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {message.image_url && (
-                    <div className="mb-2">
-                      <img
-                        src={message.image_url}
-                        alt="Uploaded photo"
-                        className="rounded-lg max-w-full h-auto"
-                      />
-                    </div>
-                  )}
-                  {message.audio_url && (
-                    <div className="mb-2">
-                      <audio controls src={message.audio_url} className="w-full" />
-                    </div>
-                  )}
-                  {message.content && (
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                  )}
-                  <span
-                    className={`text-xs mt-1 block ${
+                  <div
+                    className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                       message.sender === "user"
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
                     }`}
                   >
-                    {new Date(message.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+                    {message.image_url && (
+                      <div className="mb-2">
+                        <img
+                          src={message.image_url}
+                          alt="Uploaded photo"
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                      </div>
+                    )}
+                    {message.audio_url && (
+                      <div className="mb-2">
+                        <audio controls src={message.audio_url} className="w-full" />
+                      </div>
+                    )}
+                    {message.content && (
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                    )}
+                    <span
+                      className={`text-xs mt-1 block ${
+                        message.sender === "user"
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {new Date(message.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
-      {/* Message Input - matches Figma, fixed above bottom nav */}
-      <div 
-        className="fixed bottom-16 left-0 right-0 border-t bg-white z-30"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
-      >
-        <div className="mx-auto max-w-md px-5 py-4">
-          <div className="flex gap-2">
+        {/* Message Input - full width, sticky at bottom */}
+        <div className="fixed lg:sticky bottom-16 lg:bottom-0 left-0 right-0 lg:left-auto lg:right-auto border-t bg-white shrink-0 w-full z-30 lg:z-auto lg:w-full">
+          <div className="px-4 py-4 w-full max-w-full">
+            <div className="flex gap-2 w-full">
             <div className="hidden sm:flex gap-1">
               <Button variant="ghost" size="icon">
                 <Paperclip className="size-4" />
@@ -438,8 +458,10 @@ export default function ChatConversationPage({
               </Button>
             )}
           </div>
+          </div>
+        </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

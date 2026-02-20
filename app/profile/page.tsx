@@ -18,6 +18,7 @@ import {
   Star,
   Sparkles,
   Check,
+  User,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -28,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar"
 import { Switch } from "@/app/components/ui/switch";
 import { Separator } from "@/app/components/ui/separator";
 import { Badge } from "@/app/components/ui/badge";
+import { PageShell } from "@/app/components/PageShell";
 import { Textarea } from "@/app/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/ImageWithFallback";
@@ -74,6 +76,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     display_name: "",
     bio: "",
@@ -83,14 +86,20 @@ export default function ProfilePage() {
   });
   const [isStylist, setIsStylist] = useState(false);
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [originalIsStylist, setOriginalIsStylist] = useState(false);
+  const [originalSpecialties, setOriginalSpecialties] = useState<string[]>([]);
+  const [stylistError, setStylistError] = useState<string | null>(null);
+  const [stylistSuccess, setStylistSuccess] = useState(false);
+  const [savingStylist, setSavingStylist] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Specialty options matching Browse filter options
   const specialtyOptions = [
     { id: "hair", label: "Hair Stylists" },
-    { id: "fashion", label: "Fashion Stylists" },
     { id: "makeup", label: "Makeup Artists" },
+    { id: "fashion", label: "Fashion Stylists" },
+    { id: "skincare", label: "Skincare" },
   ];
 
   useEffect(() => {
@@ -100,8 +109,10 @@ export default function ProfilePage() {
           data: { user },
         } = await supabase.auth.getUser();
 
+        setUser(user);
+
         if (!user) {
-          router.push("/");
+          setLoading(false);
           return;
         }
 
@@ -131,6 +142,8 @@ export default function ProfilePage() {
           });
           setIsStylist(profileData.is_stylist || false);
           setSelectedSpecialties(profileData.specialties || []);
+          setOriginalIsStylist(profileData.is_stylist || false);
+          setOriginalSpecialties(profileData.specialties || []);
         } else {
           // Create profile if it doesn't exist
           const { data: newProfile, error: createError } = await supabase
@@ -159,6 +172,8 @@ export default function ProfilePage() {
             });
             setIsStylist(newProfile.is_stylist || false);
             setSelectedSpecialties(newProfile.specialties || []);
+            setOriginalIsStylist(newProfile.is_stylist || false);
+            setOriginalSpecialties(newProfile.specialties || []);
           }
         }
       } catch (error: any) {
@@ -306,24 +321,148 @@ export default function ProfilePage() {
   };
 
   const toggleSpecialty = (specialtyId: string) => {
-    setSelectedSpecialties((prev) =>
-      prev.includes(specialtyId)
-        ? prev.filter((id) => id !== specialtyId)
-        : [...prev, specialtyId]
-    );
+    const newSpecialties = selectedSpecialties.includes(specialtyId)
+      ? selectedSpecialties.filter((id) => id !== specialtyId)
+      : [...selectedSpecialties, specialtyId];
+    
+    setSelectedSpecialties(newSpecialties);
+    setStylistSuccess(false);
+  };
+
+  const handleStylistToggle = (checked: boolean) => {
+    setIsStylist(checked);
+    
+    // If turning OFF, clear specialties in UI immediately
+    if (!checked) {
+      setSelectedSpecialties([]);
+    }
+    
+    setStylistSuccess(false);
+  };
+
+  const hasStylistChanges = () => {
+    const isStylistChanged = isStylist !== originalIsStylist;
+    const specialtiesChanged = 
+      JSON.stringify([...selectedSpecialties].sort()) !== 
+      JSON.stringify([...originalSpecialties].sort());
+    return isStylistChanged || specialtiesChanged;
+  };
+
+  const handleSaveStylist = async () => {
+    if (!profile) return;
+
+    setSavingStylist(true);
+    setStylistError(null);
+    setStylistSuccess(false);
+
+    try {
+      const specialtiesToSave = isStylist && selectedSpecialties.length > 0 
+        ? selectedSpecialties 
+        : null;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          is_stylist: isStylist,
+          specialties: specialtiesToSave,
+        })
+        .eq("id", profile.id);
+
+      if (error) {
+        const errorInfo = logSupabaseError("saving stylist fields", error);
+        setStylistError("Couldn't save. Try again.");
+        return;
+      }
+
+      // Update local state and original values
+      setProfile({
+        ...profile,
+        is_stylist: isStylist,
+        specialties: selectedSpecialties,
+      });
+      setOriginalIsStylist(isStylist);
+      setOriginalSpecialties(selectedSpecialties);
+      setStylistSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setStylistSuccess(false);
+      }, 3000);
+    } catch (error: any) {
+      console.error("Error saving stylist fields:", {
+        message: error?.message,
+        stack: error?.stack,
+        fullError: error,
+      });
+      setStylistError("Couldn't save. Try again.");
+    } finally {
+      setSavingStylist(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-md bg-background min-h-screen flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
+      </PageShell>
+    );
+  }
+
+  // Show sign-in prompt if user is not signed in
+  if (!user && !loading) {
+    return (
+      <PageShell
+        header={{
+          left: (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="-ml-2"
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+          ),
+          center: <h1 className="text-2xl">Profile</h1>,
+          right: null,
+        }}
+        className="py-6"
+      >
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <User className="size-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-2xl font-semibold mb-2">Sign in to view your profile</h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md">
+            Please sign in to access your profile settings and manage your account.
+          </p>
+          <Button onClick={() => router.push("/signin")} size="lg">
+            Sign In
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   if (!profile) {
     return (
-      <div className="mx-auto max-w-md bg-background min-h-screen px-5 py-6">
+      <PageShell
+        header={{
+          left: (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="-ml-2"
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+          ),
+          center: <h1 className="text-2xl">Profile</h1>,
+          right: null,
+        }}
+        className="py-6"
+      >
         <h1 className="text-2xl font-extrabold mb-2">Profile not found</h1>
         <p className="text-sm text-muted-foreground mb-4">
           Unable to load your profile. Please try again.
@@ -333,7 +472,7 @@ export default function ProfilePage() {
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
-      </div>
+      </PageShell>
     );
   }
 
@@ -347,64 +486,59 @@ export default function ProfilePage() {
     : "Recently";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 pb-24">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-                className="-ml-2"
-              >
-                <ArrowLeft className="size-4" />
-              </Button>
-              <h1 className="text-2xl">Profile</h1>
-            </div>
-            {!isEditing ? (
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="gap-2"
-              >
-                <Edit className="size-4" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCancel} disabled={saving}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} className="gap-2" disabled={saving}>
-                  <Save className="size-4" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-4 sm:px-6 py-8">
-        {/* Error Display */}
-        {error && (
-          <Card className="p-4 mb-6 bg-destructive/10 border-destructive/20">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              className="mt-2 h-auto p-0 text-destructive hover:text-destructive/80"
-            >
-              Dismiss
+    <PageShell
+      header={{
+        left: (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="-ml-2"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+        ),
+        center: <h1 className="text-2xl">Profile</h1>,
+        right: !isEditing ? (
+          <Button
+            variant="outline"
+            onClick={() => setIsEditing(true)}
+            className="gap-2"
+          >
+            <Edit className="size-4" />
+            Edit
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCancel} disabled={saving}>
+              Cancel
             </Button>
-          </Card>
-        )}
+            <Button onClick={handleSave} className="gap-2" disabled={saving}>
+              <Save className="size-4" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        ),
+      }}
+      className="bg-gradient-to-b from-background to-muted/20 py-8"
+    >
+      {/* Error Display */}
+      {error && (
+        <Card className="p-4 mb-6 bg-destructive/10 border-destructive/20">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setError(null)}
+            className="mt-2 h-auto p-0 text-destructive hover:text-destructive/80"
+          >
+            Dismiss
+          </Button>
+        </Card>
+      )}
 
-        {/* Profile Header */}
-        <Card className="p-6 sm:p-8 mb-8">
+      {/* Profile Header */}
+      <Card className="p-6 sm:p-8 mb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="relative">
               <Avatar className="w-24 h-24 sm:w-32 sm:h-32">
@@ -473,9 +607,9 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* Tabs */}
-        <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="w-full mb-8 flex-wrap">
+      {/* Tabs */}
+      <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="w-full mb-8 flex-wrap">
             <TabsTrigger value="personal" className="text-xs sm:text-sm">
               Personal
             </TabsTrigger>
@@ -574,11 +708,73 @@ export default function ProfilePage() {
                   </div>
                   <Switch
                     checked={isStylist}
-                    onCheckedChange={setIsStylist}
+                    onCheckedChange={handleStylistToggle}
                     className="shrink-0"
                   />
                 </div>
               </Card>
+
+              {/* Specialties Section - Only show when toggle is ON */}
+              {isStylist && (
+                <Card className="p-4 sm:p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg sm:text-xl mb-2">Select your specialties</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Choose all that apply to your services
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    {specialtyOptions.map((specialty) => {
+                      const isSelected = selectedSpecialties.includes(specialty.id);
+                      return (
+                        <button
+                          key={specialty.id}
+                          onClick={() => toggleSpecialty(specialty.id)}
+                          className={`px-4 py-2 rounded-lg border-2 text-left transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`size-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? 'border-primary bg-primary'
+                                : 'border-border'
+                            }`}>
+                              {isSelected && (
+                                <Check className="size-2.5 text-primary-foreground" />
+                              )}
+                            </div>
+                            <span className="text-sm sm:text-base">{specialty.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {stylistError && (
+                    <p className="mt-4 text-sm text-destructive">{stylistError}</p>
+                  )}
+                  {stylistSuccess && (
+                    <p className="mt-4 text-sm text-green-600">Saved</p>
+                  )}
+                </Card>
+              )}
+
+              {/* Save Button - Only show when there are unsaved changes */}
+              {hasStylistChanges() && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSaveStylist}
+                    disabled={savingStylist}
+                    size="lg"
+                  >
+                    {savingStylist ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -704,9 +900,8 @@ export default function ProfilePage() {
                 </div>
               </Card>
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+        </TabsContent>
+      </Tabs>
+    </PageShell>
   );
 }

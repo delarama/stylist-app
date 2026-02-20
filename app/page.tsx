@@ -1,28 +1,30 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { StylistBrowseClient } from "./BrowseClient";
+import { type Stylist } from "../figma-redesign/src/app/components/stylist-browse";
+import { SocialFeedClient } from "./SocialFeedClient";
 
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic';
 
-async function getProfilesWithStats() {
+async function getInitialStylists() {
   const supabase = await supabaseServer();
   
   // Fetch profiles - only show stylists (is_stylist = true)
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, display_name, headline, avatar_url, created_at, specialties")
+    .select("id, display_name, headline, avatar_url, created_at")
     .eq("is_stylist", true)
     .order("created_at", { ascending: false })
     .limit(20);
 
   if (profilesError || !profiles) {
-    return { profiles: [], error: profilesError };
+    return { stylists: [], error: profilesError?.message || null };
   }
 
   const items = profiles.filter((p: any) => !!p.id);
   
   if (items.length === 0) {
-    return { profiles: [], error: null };
+    return { stylists: [], error: null };
   }
 
   // LEFT JOIN: Fetch review stats for all stylists
@@ -41,44 +43,30 @@ async function getProfilesWithStats() {
     });
   });
 
-  // LEFT JOIN: Merge profiles with stats
-  const profilesWithStats = items.map((profile: any) => {
+  // Map to Stylist interface
+  const stylists: Stylist[] = items.map((profile: any) => {
     const id = String(profile.id);
     const stats = statsMap.get(id);
     return {
       id: profile.id,
-      display_name: profile.display_name,
-      headline: profile.headline,
-      avatar_url: profile.avatar_url,
-      avg_rating: stats?.avg_rating ?? null,
-      review_count: stats?.review_count ?? null,
+      name: profile.display_name || "Unnamed stylist",
+      specialty: profile.headline || "Beauty · Fashion",
+      image: profile.avatar_url || null,
+      rating: stats?.avg_rating ?? null,
+      reviews: stats?.review_count ?? null,
+      location: undefined,
+      price: undefined,
+      verified: false,
+      tags: undefined,
     };
   });
 
-  return { profiles: profilesWithStats, error: null };
+  return { stylists, error: null };
 }
 
 export default async function BrowsePage() {
-  const { profiles: items, error } = await getProfilesWithStats();
+  // Keep backend logic but render SocialFeed instead
+  // const { stylists, error } = await getInitialStylists();
 
-  // Map to Figma component's Stylist interface
-  const stylists = items.map((p: any) => ({
-    id: p.id,
-    name: p.display_name || "Unnamed stylist",
-    specialty: p.headline || "Beauty · Fashion",
-    image: p.avatar_url || null,
-    rating: p.avg_rating ?? null,
-    reviews: p.review_count ?? null,
-    location: undefined, // Not available in current schema
-    price: undefined, // Not available in current schema
-    verified: false, // Not available in current schema
-    tags: undefined, // Not available in current schema
-  }));
-
-  return (
-    <StylistBrowseClient
-      stylists={stylists}
-      error={error?.message || null}
-    />
-  );
+  return <SocialFeedClient />;
 }

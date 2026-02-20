@@ -1,15 +1,51 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
   try {
-    const supabase = await supabaseServer();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    // Try token-based auth first
+    const authHeader = request.headers.get("authorization") || "";
+    let user = null;
+    let userError = null;
+    let supabase = null;
 
-    if (userError || !user) {
+    if (authHeader.startsWith("Bearer ")) {
+      const supabaseWithToken = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: {
+            headers: {
+              Authorization: authHeader,
+            },
+          },
+        }
+      );
+
+      const result = await supabaseWithToken.auth.getUser();
+      user = result.data.user;
+      userError = result.error;
+      
+      if (user) {
+        supabase = supabaseWithToken;
+      }
+    }
+
+    // Fallback to cookie-based auth if token auth failed or no token provided
+    if (!user) {
+      const supabaseCookie = await supabaseServer();
+      const result = await supabaseCookie.auth.getUser();
+      user = result.data.user;
+      userError = result.error;
+      
+      if (user) {
+        supabase = supabaseCookie;
+      }
+    }
+
+    // Only return NOT_SIGNED_IN if both methods failed
+    if (userError || !user || !supabase) {
       return NextResponse.json(
         { ok: false, error: "NOT_SIGNED_IN" },
         { status: 401 }
