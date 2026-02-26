@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAnonServerClient } from "@/lib/supabaseAnonServer";
 
+/**
+ * GET /api/posts
+ * 
+ * Public endpoint - no authentication required.
+ * Returns posts with author profile information.
+ * 
+ * RLS Policies Required (in Supabase):
+ * - posts table: Allow SELECT for everyone (public/anonymous users)
+ * - profiles table: Allow SELECT for everyone, but only expose:
+ *   - id, display_name, avatar_url (columns needed by the feed)
+ */
 export async function GET(request: Request) {
   try {
     // Use public anon client - no authentication required for reading posts
+    // This client uses the anon key and works without user authentication
     const supabase = createSupabaseAnonServerClient();
 
     // Get author_id from query params if provided

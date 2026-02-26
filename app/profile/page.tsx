@@ -19,6 +19,7 @@ import {
   Sparkles,
   Check,
   User,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -113,6 +114,7 @@ export default function ProfilePage() {
 
         if (!user) {
           setLoading(false);
+          router.replace("/signin");
           return;
         }
 
@@ -400,6 +402,16 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   if (loading) {
     return (
       <PageShell className="flex items-center justify-center">
@@ -500,14 +512,23 @@ export default function ProfilePage() {
         ),
         center: <h1 className="text-2xl">Profile</h1>,
         right: !isEditing ? (
-          <Button
-            variant="outline"
-            onClick={() => setIsEditing(true)}
-            className="gap-2"
-          >
-            <Edit className="size-4" />
-            Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleSignOut}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Sign out
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              className="gap-2"
+            >
+              <Edit className="size-4" />
+              Edit
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleCancel} disabled={saving}>

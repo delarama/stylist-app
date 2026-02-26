@@ -4,12 +4,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutGrid, Search, MessageCircle, Wallet, User, Plus } from "lucide-react";
 import { cn } from "@/app/components/ui/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreatePostModal } from "./CreatePostModal";
+import { supabase } from "@/lib/supabase";
 
 export function BottomNav() {
   const pathname = usePathname();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsSignedIn(!!user);
+    }
+    checkAuth();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      checkAuth();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const navItems = [
     { href: "/", label: "Feed", icon: LayoutGrid },
@@ -19,7 +42,7 @@ export function BottomNav() {
   const rightNavItems = [
     { href: "/chats", label: "Chats", icon: MessageCircle },
     { href: "/wallet", label: "Wallet", icon: Wallet },
-    { href: "/profile", label: "Profile", icon: User },
+    { href: isSignedIn ? "/profile" : "/signin", label: "Profile", icon: User },
   ];
 
   const handlePostSuccess = () => {
@@ -27,6 +50,25 @@ export function BottomNav() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("refreshFeed"));
     }
+  };
+
+  const handleCreatePostClick = async () => {
+    // If auth state is still loading, check directly
+    if (isSignedIn === null) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/signin?next=/&openCreatePost=1";
+        return;
+      }
+    } else if (isSignedIn === false) {
+      // Not signed in - redirect to signin with return URL
+      window.location.href = "/signin?next=/&openCreatePost=1";
+      return;
+    }
+    // Signed in - open modal
+    setIsCreateModalOpen(true);
   };
 
   return (
@@ -70,7 +112,7 @@ export function BottomNav() {
 
           {/* Center: Create Post Button (Mobile) */}
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={handleCreatePostClick}
             className="lg:hidden flex flex-col items-center justify-center gap-1 px-4 text-xs transition-colors text-primary"
           >
             <div className="size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -82,8 +124,10 @@ export function BottomNav() {
           {/* Right items */}
           {rightNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = 
-              pathname === item.href || pathname?.startsWith(item.href + "/");
+            // For Profile, check both /profile and /signin as active
+            const isActive = item.label === "Profile"
+              ? pathname === "/profile" || pathname === "/signin"
+              : pathname === item.href || pathname?.startsWith(item.href + "/");
             
             return (
               <Link
@@ -106,7 +150,7 @@ export function BottomNav() {
 
       {/* Floating Create Button (Desktop) */}
       <button
-        onClick={() => setIsCreateModalOpen(true)}
+        onClick={handleCreatePostClick}
         className="hidden lg:flex fixed bottom-24 right-8 size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow items-center justify-center z-40"
         style={{ marginBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
       >

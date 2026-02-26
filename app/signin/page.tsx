@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
 
@@ -18,7 +19,15 @@ export default function SignInPage() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.push("/profile");
+        // If signed in, redirect to next URL or profile
+        const next = searchParams.get("next");
+        if (next) {
+          const openCreatePost = searchParams.get("openCreatePost");
+          const redirectUrl = openCreatePost ? `${next}?openCreatePost=1` : next;
+          router.replace(redirectUrl);
+        } else {
+          router.push("/profile");
+        }
         return;
       }
 
@@ -26,15 +35,26 @@ export default function SignInPage() {
     }
 
     checkAuth();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
     try {
+      // Preserve next and openCreatePost params in the callback URL
+      const next = searchParams.get("next");
+      const openCreatePost = searchParams.get("openCreatePost");
+      const callbackParams = new URLSearchParams();
+      if (next) callbackParams.set("next", next);
+      if (openCreatePost) callbackParams.set("openCreatePost", openCreatePost);
+      
+      const callbackUrl = callbackParams.toString()
+        ? `${window.location.origin}/auth/callback?${callbackParams.toString()}`
+        : `${window.location.origin}/auth/callback`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl,
         },
       });
 

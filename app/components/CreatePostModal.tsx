@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -36,7 +36,7 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
     setSelectedFile(file);
     setError(null);
     
-    // Create preview
+    // Create preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreviewUrl(reader.result as string);
@@ -44,16 +44,22 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
     reader.readAsDataURL(file);
   };
 
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setTags("");
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedFile) {
-      setError("Please select an image");
-      return;
-    }
-
-    if (!title.trim()) {
-      setError("Title is required");
+    if (!selectedFile || !title.trim()) {
       return;
     }
 
@@ -67,29 +73,22 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
       formData.append("description", description.trim());
       formData.append("tags", tags.trim());
 
-      const response = await fetch("/api/posts/create", {
+      const res = await fetch("/api/posts/create", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok || !data.ok) {
-        setError(data.error || "Failed to create post");
+      if (!data.ok) {
+        setError(data.error || "Something went wrong");
+        setUploading(false);
         return;
       }
 
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setTags("");
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      // Close modal and refresh feed
+      // Reset form, close modal, and refresh feed
+      resetForm();
       onClose();
       onSuccess();
     } catch (err: any) {
@@ -101,18 +100,12 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
 
   const handleClose = () => {
     if (!uploading) {
-      setTitle("");
-      setDescription("");
-      setTags("");
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setError(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      resetForm();
       onClose();
     }
   };
+
+  const canSubmit = selectedFile !== null && title.trim() !== "";
 
   if (!isOpen) return null;
 
@@ -122,11 +115,11 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
           <h2 className="text-xl font-semibold">Create Post</h2>
           <Button
             variant="ghost"
@@ -138,127 +131,133 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalP
           </Button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Image Upload */}
-          <div>
-            <Label>Image *</Label>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-2 border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileSelect}
-                disabled={uploading}
-              />
-              {previewUrl ? (
-                <div className="relative">
-                  <ImageWithFallback
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-64 object-cover rounded-lg"
+        {/* Content - Two column on desktop, stacked on mobile */}
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* Left: Image Preview (Desktop) / Top (Mobile) */}
+          <div className="w-full md:w-1/2 flex items-center justify-center p-6 bg-muted/30">
+            {previewUrl ? (
+              <div className="relative w-full aspect-square max-w-md">
+                <ImageWithFallback
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 bg-white/90 hover:bg-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedFile(null);
+                    setPreviewUrl(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                  }}
+                  disabled={uploading}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full aspect-square max-w-md border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-white"
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  disabled={uploading}
+                />
+                <Upload className="size-12 mb-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground mb-1">Click to upload image</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Form (Desktop) / Bottom (Mobile) */}
+          <div className="w-full md:w-1/2 flex flex-col overflow-hidden">
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Title */}
+                <div>
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter post title"
+                    className="mt-2"
+                    disabled={uploading}
                   />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Write a description..."
+                    className="mt-2 min-h-[120px] resize-none"
+                    disabled={uploading}
+                  />
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input
+                    id="tags"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="Comma-separated tags (e.g., hair, color, balayage)"
+                    className="mt-2"
+                    disabled={uploading}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Separate tags with commas
+                  </p>
+                </div>
+
+                {/* Error */}
+                {error && (
+                  <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sticky Post Button - Desktop: bottom of right panel, Mobile: full width */}
+              <div className="border-t p-6 bg-white shrink-0 md:sticky md:bottom-0">
+                <div className="flex flex-col md:flex-row gap-3 md:justify-end">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedFile(null);
-                      setPreviewUrl(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = "";
-                      }
-                    }}
+                    variant="outline"
+                    onClick={handleClose}
+                    disabled={uploading}
+                    className="w-full md:w-auto md:min-w-[100px]"
                   >
-                    <X className="size-4" />
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={uploading || !canSubmit}
+                    className="w-full md:w-auto md:min-w-[100px]"
+                  >
+                    {uploading ? "Posting..." : "Post"}
                   </Button>
                 </div>
-              ) : (
-                <>
-                  <Upload className="size-8 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Click to upload image</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
-                </>
-              )}
-            </div>
+              </div>
+            </form>
           </div>
-
-          {/* Title */}
-          <div>
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter post title"
-              className="mt-2"
-              disabled={uploading}
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Write a description..."
-              className="mt-2 min-h-[100px]"
-              disabled={uploading}
-            />
-          </div>
-
-          {/* Tags */}
-          <div>
-            <Label htmlFor="tags">Tags</Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="Comma-separated tags (e.g., hair, color, balayage)"
-              className="mt-2"
-              disabled={uploading}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Separate tags with commas
-            </p>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={uploading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={uploading || !selectedFile || !title.trim()}
-              className="flex-1"
-            >
-              {uploading ? "Posting..." : "Post"}
-            </Button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );
