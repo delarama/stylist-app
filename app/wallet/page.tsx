@@ -1,30 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowUpRight,
-  ArrowDownLeft,
   Plus,
   Download,
   CreditCard,
   Clock,
   TrendingUp,
-  DollarSign,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { PageShell } from "@/app/components/PageShell";
 
+const AMOUNT_OPTIONS = [10, 25, 50] as const;
+type TopUpAmount = (typeof AMOUNT_OPTIONS)[number];
+
 export default function WalletPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [minutesBalance, setMinutesBalance] = useState<number | null>(null);
+  const [dollarBalance, setDollarBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState<TopUpAmount>(25);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState(false);
 
   const fetchWallet = async () => {
     try {
@@ -35,9 +40,9 @@ export default function WalletPage() {
         cache: "no-store",
       });
 
-      // Handle 401 as signed-out state (no error, just no balance)
       if (res.status === 401) {
         setMinutesBalance(0);
+        setDollarBalance(0);
         setLoading(false);
         return;
       }
@@ -49,16 +54,14 @@ export default function WalletPage() {
       let data;
       try {
         data = await res.json();
-      } catch (jsonError) {
-        console.log("Response status:", res.status);
-        console.log("Content-Type:", res.headers.get("content-type"));
+      } catch {
         throw new Error("Failed to parse JSON response");
       }
 
       if (!data.ok) {
-        // Don't show error for NOT_SIGNED_IN (should be handled by 401 check above, but just in case)
         if (data.error === "NOT_SIGNED_IN") {
           setMinutesBalance(0);
+          setDollarBalance(0);
           return;
         }
         setError(data.error || "Failed to load wallet balance");
@@ -66,8 +69,9 @@ export default function WalletPage() {
       }
 
       setMinutesBalance(data.minutes_balance ?? 0);
-    } catch (error) {
-      console.error("Error fetching wallet:", error);
+      setDollarBalance(data.balance ?? 0);
+    } catch (err) {
+      console.error("Error fetching wallet:", err);
       setError("Failed to load wallet balance");
     } finally {
       setLoading(false);
@@ -75,19 +79,39 @@ export default function WalletPage() {
   };
 
   useEffect(() => {
+    const isSuccess = searchParams.get("deposit_success") === "1";
+    if (isSuccess) {
+      setDepositSuccess(true);
+      window.dispatchEvent(new CustomEvent("refetch-wallet"));
+    }
+
     fetchWallet();
 
-    // Listen for wallet refetch events
-    const handleRefetch = () => {
-      fetchWallet();
-    };
-
+    const handleRefetch = () => fetchWallet();
     window.addEventListener("refetch-wallet", handleRefetch);
-
-    return () => {
-      window.removeEventListener("refetch-wallet", handleRefetch);
-    };
+    return () => window.removeEventListener("refetch-wallet", handleRefetch);
   }, []);
+
+  const handleAddFunds = async () => {
+    setCheckingOut(true);
+    try {
+      const res = await fetch("/api/wallet/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: topUpAmount }),
+      });
+      const data = await res.json();
+      if (!data.ok || !data.url) {
+        throw new Error(data.error ?? "Checkout failed");
+      }
+      router.push(data.url);
+    } catch (err: any) {
+      console.error("Checkout error:", err);
+      setError(err.message ?? "Failed to start checkout");
+      setCheckingOut(false);
+    }
+  };
 
   const handleUseTime = () => {
     router.push("/");
@@ -116,155 +140,135 @@ export default function WalletPage() {
       }}
       className="py-8"
     >
-        {/* Balance Cards - Mobile-first: single column on mobile, grid on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Main Balance */}
-          <Card className="w-full p-6 lg:col-span-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1 min-w-0">
-                <p className="text-primary-foreground/80 mb-2">Available Minutes</p>
-                <h2 className="text-4xl">
-                  {loading ? (
-                    <span className="text-primary-foreground/60">Loading...</span>
-                  ) : error ? (
-                    <span className="text-primary-foreground/60">—</span>
-                  ) : (
-                    minutesBalance
-                  )}
-                </h2>
-                {error && (
-                  <p className="mt-2 text-sm text-primary-foreground/70">
-                    {error}
-                  </p>
+      {/* Deposit success banner */}
+      {depositSuccess && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">
+          <CheckCircle className="size-5 shrink-0 text-green-600" />
+          <span className="text-sm font-medium">
+            Your deposit of ${topUpAmount} was successful! Your balance has been updated.
+          </span>
+        </div>
+      )}
+
+      {/* Balance Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Main Balance */}
+        <Card className="w-full p-6 lg:col-span-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-0">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1 min-w-0">
+              <p className="text-primary-foreground/80 mb-2">Available Balance</p>
+              <h2 className="text-4xl">
+                {loading ? (
+                  <span className="text-primary-foreground/60">Loading...</span>
+                ) : error ? (
+                  <span className="text-primary-foreground/60">—</span>
+                ) : (
+                  `$${(dollarBalance ?? 0).toFixed(2)}`
                 )}
-              </div>
-              <div className="w-12 h-12 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0 ml-4">
-                <Clock className="size-6" />
-              </div>
+              </h2>
+              {error && (
+                <p className="mt-2 text-sm text-primary-foreground/70">{error}</p>
+              )}
             </div>
-            <div className="flex gap-3">
-              <Button
-                className="flex-1 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                disabled={
-                  minutesBalance === null ||
-                  minutesBalance <= 0 ||
-                  loading ||
-                  !!error
-                }
-                onClick={handleUseTime}
+            <div className="w-12 h-12 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0 ml-4">
+              <Clock className="size-6" />
+            </div>
+          </div>
+
+          {/* Amount selector */}
+          <div className="flex gap-2 mb-3">
+            {AMOUNT_OPTIONS.map((amt) => (
+              <button
+                key={amt}
+                onClick={() => setTopUpAmount(amt)}
+                className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                  topUpAmount === amt
+                    ? "bg-primary-foreground text-primary"
+                    : "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                }`}
               >
-                <Plus className="size-4 mr-2" />
-                Use Time
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <CreditCard className="size-4 mr-2" />
-                Add Funds
-              </Button>
+                ${amt}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              className="flex-1 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+              disabled={minutesBalance === null || minutesBalance <= 0 || loading || !!error}
+              onClick={handleUseTime}
+            >
+              <Plus className="size-4 mr-2" />
+              Use Time
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
+              disabled={checkingOut || loading}
+              onClick={handleAddFunds}
+            >
+              <CreditCard className="size-4 mr-2" />
+              {checkingOut ? "Redirecting..." : `Add $${topUpAmount}`}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Stats */}
+        <div className="flex flex-col gap-4 w-full">
+          <Card className="w-full p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center shrink-0">
+                <TrendingUp className="size-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">This Month</p>
+                <p className="text-xl">0 min</p>
+              </div>
             </div>
           </Card>
 
-          {/* Stats - Stacked on mobile, side-by-side on desktop */}
-          <div className="flex flex-col gap-4 w-full">
-            <Card className="w-full p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center shrink-0">
-                  <TrendingUp className="size-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">This Month</p>
-                  <p className="text-xl">0 min</p>
-                </div>
+          <Card className="w-full p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                <Clock className="size-5 text-primary" />
               </div>
-            </Card>
-
-            <Card className="w-full p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                  <Clock className="size-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Used</p>
-                  <p className="text-xl">0 min</p>
-                </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Used</p>
+                <p className="text-xl">0 min</p>
               </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* Transactions */}
-        <Card className="overflow-hidden">
-          <Tabs defaultValue="all" className="w-full">
-            <div className="p-6 pb-0">
-              <h3 className="mb-4">Transaction History</h3>
-              <TabsList className="w-full grid grid-cols-4">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="payments">Payments</TabsTrigger>
-                <TabsTrigger value="deposits">Deposits</TabsTrigger>
-                <TabsTrigger value="refunds">Refunds</TabsTrigger>
-              </TabsList>
             </div>
+          </Card>
+        </div>
+      </div>
 
-            <TabsContent value="all" className="m-0">
+      {/* Transactions */}
+      <Card className="overflow-hidden">
+        <Tabs defaultValue="all" className="w-full">
+          <div className="p-6 pb-0">
+            <h3 className="mb-4">Transaction History</h3>
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="deposits">Deposits</TabsTrigger>
+              <TabsTrigger value="refunds">Refunds</TabsTrigger>
+            </TabsList>
+          </div>
+
+          {["all", "payments", "deposits", "refunds"].map((tab) => (
+            <TabsContent key={tab} value={tab} className="m-0">
               <ScrollArea className="h-[500px]">
                 <div className="p-6 pt-4">
                   <div className="space-y-4">
-                    {/* Empty state */}
                     <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No transactions yet
-                      </p>
+                      <p className="text-sm text-muted-foreground">No transactions yet</p>
                     </div>
                   </div>
                 </div>
               </ScrollArea>
             </TabsContent>
-
-            <TabsContent value="payments" className="m-0">
-              <ScrollArea className="h-[500px]">
-                <div className="p-6 pt-4">
-                  <div className="space-y-4">
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No transactions yet
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="deposits" className="m-0">
-              <ScrollArea className="h-[500px]">
-                <div className="p-6 pt-4">
-                  <div className="space-y-4">
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No transactions yet
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="refunds" className="m-0">
-              <ScrollArea className="h-[500px]">
-                <div className="p-6 pt-4">
-                  <div className="space-y-4">
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">
-                        No transactions yet
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </Card>
+          ))}
+        </Tabs>
+      </Card>
     </PageShell>
   );
 }
