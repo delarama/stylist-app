@@ -34,28 +34,36 @@ export async function POST(request: Request) {
 
   const origin = request.headers.get("origin") ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: amount * 100,
-          product_data: {
-            name: `Wallet top-up — $${amount}`,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: amount * 100,
+            product_data: {
+              name: `Wallet top-up — $${amount}`,
+            },
           },
         },
+      ],
+      success_url: `${origin}/wallet?deposit_success=1`,
+      cancel_url: `${origin}/wallet`,
+      metadata: {
+        user_id: user.id,
+        amount_dollars: String(amount),
       },
-    ],
-    success_url: `${origin}/wallet?deposit_success=1`,
-    cancel_url: `${origin}/wallet`,
-    metadata: {
-      user_id: user.id,
-      amount_dollars: String(amount),
-    },
-    client_reference_id: user.id,
-  });
+      client_reference_id: user.id,
+    });
 
-  return NextResponse.json({ ok: true, url: session.url });
+    return NextResponse.json({ ok: true, url: session.url });
+  } catch (err: any) {
+    console.error("Stripe checkout error:", err);
+    return NextResponse.json(
+      { ok: false, error: err?.message ?? "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
 }
