@@ -10,6 +10,8 @@ import {
   Clock,
   TrendingUp,
   CheckCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -19,6 +21,14 @@ import { PageShell } from "@/app/components/PageShell";
 
 const AMOUNT_OPTIONS = [10, 25, 50] as const;
 type TopUpAmount = (typeof AMOUNT_OPTIONS)[number];
+
+type HistoryEntry = {
+  id: string;
+  type: "deposit" | "chat_payment" | "refund";
+  amount: number;
+  created_at: string;
+  description: string;
+};
 
 export default function WalletPage() {
   const router = useRouter();
@@ -30,6 +40,23 @@ export default function WalletPage() {
   const [topUpAmount, setTopUpAmount] = useState<TopUpAmount>(25);
   const [checkingOut, setCheckingOut] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/wallet/history", { credentials: "include", cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) setHistory(data.entries);
+      }
+    } catch (err) {
+      console.error("Error fetching history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const fetchWallet = async () => {
     try {
@@ -86,8 +113,9 @@ export default function WalletPage() {
     }
 
     fetchWallet();
+    fetchHistory();
 
-    const handleRefetch = () => fetchWallet();
+    const handleRefetch = () => { fetchWallet(); fetchHistory(); };
     window.addEventListener("refetch-wallet", handleRefetch);
     return () => window.removeEventListener("refetch-wallet", handleRefetch);
   }, []);
@@ -203,7 +231,7 @@ export default function WalletPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex-1 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
+              className="flex-1 bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               disabled={checkingOut || loading}
               onClick={handleAddFunds}
             >
@@ -254,15 +282,70 @@ export default function WalletPage() {
             </TabsList>
           </div>
 
-          {["all", "payments", "deposits", "refunds"].map((tab) => (
-            <TabsContent key={tab} value={tab} className="m-0">
+          {(
+            [
+              { value: "all", entries: history },
+              { value: "payments", entries: history.filter((e) => e.type === "chat_payment") },
+              { value: "deposits", entries: history.filter((e) => e.type === "deposit") },
+              { value: "refunds", entries: history.filter((e) => e.type === "refund") },
+            ] as const
+          ).map(({ value, entries }) => (
+            <TabsContent key={value} value={value} className="m-0">
               <ScrollArea className="h-[500px]">
-                <div className="p-6 pt-4">
-                  <div className="space-y-4">
+                <div className="p-6 pt-4 space-y-3">
+                  {historyLoading ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">Loading...</p>
+                    </div>
+                  ) : entries.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-sm text-muted-foreground">No transactions yet</p>
                     </div>
-                  </div>
+                  ) : (
+                    entries.map((entry) => {
+                      const isDeposit = entry.type === "deposit";
+                      const isRefund = entry.type === "refund";
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-4 rounded-lg border p-4"
+                        >
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                              isDeposit || isRefund
+                                ? "bg-green-500/10"
+                                : "bg-red-500/10"
+                            }`}
+                          >
+                            {isDeposit || isRefund ? (
+                              <ArrowDownLeft className="size-5 text-green-600" />
+                            ) : (
+                              <ArrowUpRight className="size-5 text-red-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{entry.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(entry.created_at).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                          <p
+                            className={`text-sm font-medium tabular-nums ${
+                              isDeposit || isRefund ? "text-green-600" : "text-red-500"
+                            }`}
+                          >
+                            {isDeposit || isRefund ? "+" : "-"}${entry.amount.toFixed(2)}
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
