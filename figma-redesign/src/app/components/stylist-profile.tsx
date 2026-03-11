@@ -129,9 +129,12 @@ const stylistPosts: Post[] = [
 ];
 
 interface StylistProfileProps {
-  stylistId: number;
+  stylistId: number | string;
   onBack: () => void;
   onChat: () => void;
+  displayName?: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
 }
 
 export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProps) {

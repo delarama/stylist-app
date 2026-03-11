@@ -40,12 +40,12 @@ export async function GET(request: Request) {
           .eq("id", user.id)
           .maybeSingle();
         
-        profile = retryResult.data;
+        profile = retryResult.data as any;
         profileError = retryResult.error;
         
         // Add null specialties to the profile
         if (profile) {
-          profile = { ...profile, specialties: null };
+          profile = { ...profile, specialties: null } as any;
         }
       }
     }

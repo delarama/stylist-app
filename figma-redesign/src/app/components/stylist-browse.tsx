@@ -5,20 +5,20 @@ import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
-interface Stylist {
-  id: number;
+export interface Stylist {
+  id: number | string;
   name: string;
   specialty: string;
-  image: string;
-  rating: number;
-  reviews: number;
-  location: string;
-  price: string;
+  image: string | null;
+  rating: number | null;
+  reviews: number | null;
+  location?: string;
+  price?: string;
   verified: boolean;
-  tags: string[];
+  tags?: string[];
 }
 
-const stylists: Stylist[] = [
+const defaultStylists: Stylist[] = [
   {
     id: 1,
     name: "Sophia Martinez",
@@ -94,12 +94,20 @@ const stylists: Stylist[] = [
 ];
 
 interface StylistBrowseProps {
-  onStylistClick: (id: number) => void;
+  onStylistClick: (id: number | string) => void;
+  stylists?: Stylist[];
+  error?: string | null;
+  selectedSpecialty?: string | null;
+  onFilterChange?: (specialty: string | null) => void;
 }
 
-export function StylistBrowse({ onStylistClick }: StylistBrowseProps) {
+export function StylistBrowse({ onStylistClick, stylists: externalStylists, error }: StylistBrowseProps) {
+  const stylists = externalStylists ?? defaultStylists;
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 py-4 text-sm text-destructive">{error}</div>
+      )}
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 sm:py-6">
@@ -158,7 +166,7 @@ export function StylistBrowse({ onStylistClick }: StylistBrowseProps) {
               {/* Image */}
               <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                 <ImageWithFallback
-                  src={stylist.image}
+                  src={stylist.image ?? ""}
                   alt={stylist.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
@@ -182,31 +190,35 @@ export function StylistBrowse({ onStylistClick }: StylistBrowseProps) {
                         {stylist.specialty}
                       </p>
                     </div>
-                    <div className="text-sm sm:text-base text-muted-foreground ml-2">
-                      {stylist.price}
-                    </div>
+                    {stylist.price && (
+                      <div className="text-sm sm:text-base text-muted-foreground ml-2">
+                        {stylist.price}
+                      </div>
+                    )}
                   </div>
 
                   {/* Rating */}
                   <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="flex items-center gap-1">
                       <Star className="size-3 sm:size-4 fill-amber-400 text-amber-400" />
-                      <span className="text-xs sm:text-sm">{stylist.rating}</span>
+                      <span className="text-xs sm:text-sm">{stylist.rating ?? "—"}</span>
                     </div>
                     <span className="text-xs sm:text-sm text-muted-foreground">
-                      ({stylist.reviews} reviews)
+                      ({stylist.reviews ?? 0} reviews)
                     </span>
                   </div>
 
                   {/* Location */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                    <MapPin className="size-3 sm:size-4" />
-                    {stylist.location}
-                  </div>
+                  {stylist.location && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                      <MapPin className="size-3 sm:size-4" />
+                      {stylist.location}
+                    </div>
+                  )}
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {stylist.tags.slice(0, 3).map((tag) => (
+                    {(stylist.tags ?? []).slice(0, 3).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>

@@ -170,17 +170,18 @@ export function SocialFeed({ onStylistClick }: SocialFeedProps) {
               <Link
                 key={post.id}
                 href={`/stylist/${post.stylist.id}`}
-                className="block group relative bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                className="block group relative bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer w-full min-w-0"
                 onMouseEnter={() => setHoveredPost(post.id)}
                 onMouseLeave={() => setHoveredPost(null)}
               >
                 {/* Post Image */}
-                <div className="relative">
-                  <ImageWithFallback
-                    src={post.image || ""}
-                    alt={post.caption || post.title || "Post image"}
-                    className="w-full h-auto object-cover"
-                  />
+                <div className="w-full overflow-hidden bg-muted">
+                  <div className="relative w-full aspect-[4/5]">
+                    <ImageWithFallback
+                      src={post.image || ""}
+                      alt={post.caption || "Post image"}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
                   
                   {/* Overlay Gradient (visible on hover) */}
                   <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 ${
@@ -261,6 +262,7 @@ export function SocialFeed({ onStylistClick }: SocialFeedProps) {
                     </div>
                     </div>
                   )}
+                  </div>
                 </div>
 
                 {/* Stylist Info (always visible) */}

@@ -98,8 +98,8 @@ export async function POST(request: Request) {
       console.error("[POST /api/posts/create] Upload error:", JSON.stringify(uploadError, null, 2));
       console.error("[POST /api/posts/create] Upload error details:", {
         message: uploadError.message,
-        statusCode: uploadError.statusCode,
-        error: uploadError.error,
+        statusCode: (uploadError as any).statusCode,
+        error: (uploadError as any).error,
       });
       return NextResponse.json(
         { 
