@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     // Query wallets table for the current user's minutes_balance
     const { data: wallet, error: walletError } = await supabase
       .from("wallets")
-      .select("minutes_balance")
+      .select("minutes_balance, balance")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -33,9 +33,10 @@ export async function GET(request: Request) {
 
     // Return 0 if no wallet record exists
     const minutes_balance = wallet?.minutes_balance ?? 0;
+    const balance = wallet?.balance ?? 0;
 
     return NextResponse.json(
-      { ok: true, minutes_balance },
+      { ok: true, minutes_balance, balance },
       { status: 200 }
     );
   } catch (error: any) {

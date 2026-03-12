@@ -54,6 +54,8 @@ export default function ChatConversationPage({
   const [recording, setRecording] = useState(false);
   const [chatNotFound, setChatNotFound] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [endingChat, setEndingChat] = useState(false);
+  const [endChatError, setEndChatError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -236,20 +238,51 @@ export default function ChatConversationPage({
     }
   };
 
-  const handleEndChat = () => {
-    if (!chatData) return;
+  const handleEndChat = async () => {
+    if (!chatData || endingChat) return;
 
-    const elapsedSeconds =
-      (Date.now() - new Date(chatData.created_at).getTime()) / 1000;
+    setEndingChat(true);
+    setEndChatError(null);
 
-    if (elapsedSeconds < 10) {
-      router.push("/chats");
-    } else {
-      router.push(
-        `/review?chat_id=${chatData.id}&stylist_id=${chatData.stylist_id}`
-      );
+    try {
+      const res = await fetch(`/api/chats/${chatData.id}/end`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const result = await res.json();
+
+      if (!result.ok) {
+        if (result.error === "INSUFFICIENT_BALANCE") {
+          setEndChatError(
+            `Insufficient balance. Required: $${result.required?.toFixed(2)}, available: $${result.available?.toFixed(2)}.`
+          );
+          return;
+        }
+        if (result.error === "CHAT_ALREADY_ENDED") {
+          router.push("/chats");
+          return;
+        }
+        setEndChatError("Failed to end chat. Please try again.");
+        return;
+      }
+
+      setShowMenu(false);
+      const elapsedSeconds =
+        (Date.now() - new Date(chatData.created_at).getTime()) / 1000;
+
+      if (elapsedSeconds < 10) {
+        router.push("/chats");
+      } else {
+        router.push(
+          `/review?chat_id=${chatData.id}&stylist_id=${chatData.stylist_id}`
+        );
+      }
+    } catch {
+      setEndChatError("Network error. Please try again.");
+    } finally {
+      setEndingChat(false);
     }
-    setShowMenu(false);
   };
 
   if (loading) {
@@ -333,12 +366,16 @@ export default function ChatConversationPage({
             <MoreVertical className="size-4" />
           </Button>
           {showMenu && (
-            <Card className="absolute right-0 mt-2 w-48 p-2 bg-white shadow-lg rounded-md border z-40">
+            <Card className="absolute right-0 mt-2 w-56 p-2 bg-white shadow-lg rounded-md border z-40">
+            {endChatError && (
+              <p className="px-3 py-2 text-xs text-destructive">{endChatError}</p>
+            )}
             <button
               onClick={handleEndChat}
-              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted rounded-sm"
+              disabled={endingChat}
+              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted rounded-sm disabled:opacity-50"
             >
-              End chat
+              {endingChat ? "Ending..." : "End chat"}
             </button>
           </Card>
           )}
