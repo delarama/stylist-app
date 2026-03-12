@@ -13,10 +13,9 @@ export async function GET(request: Request) {
       .select("id, display_name, headline, avatar_url, specialties")
       .eq("is_stylist", true);
 
-    // Filter by specialty if provided
+    // Filter by specialty keyword against headline
     if (specialty) {
-      // Use array contains filter - works with NULL (returns empty result for NULL arrays)
-      query = query.contains("specialties", [specialty]);
+      query = query.ilike("headline", `%${specialty}%`);
     }
 
     const { data: profiles, error: profilesError } = await query

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { StylistBrowse, type Stylist } from "../figma-redesign/src/app/components/stylist-browse";
 
 interface BrowseClientProps {
@@ -61,13 +61,6 @@ export function StylistBrowseClient({ initialStylists, initialError }: BrowseCli
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    // Fetch on initial load if we have a specialty filter
-    if (selectedSpecialty !== null) {
-      fetchStylists(selectedSpecialty);
-    }
-  }, [selectedSpecialty]);
 
   const handleStylistClick = (id: string | number) => {
     router.push(`/stylist/${id}`);
