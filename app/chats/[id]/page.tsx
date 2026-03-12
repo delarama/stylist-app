@@ -25,6 +25,8 @@ interface Message {
   content: string | null;
   image_url: string | null;
   audio_url: string | null;
+  file_url: string | null;
+  file_name: string | null;
   created_at: string;
 }
 
@@ -59,6 +61,7 @@ export default function ChatConversationPage({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Resolve params
@@ -148,6 +151,8 @@ export default function ChatConversationPage({
         content: newMessage,
         image_url: null,
         audio_url: null,
+        file_url: null,
+        file_name: null,
         created_at: new Date().toISOString(),
       };
 
@@ -180,6 +185,8 @@ export default function ChatConversationPage({
         content: null,
         image_url: previewUrl,
         audio_url: null,
+        file_url: null,
+        file_name: null,
         created_at: new Date().toISOString(),
       };
 
@@ -191,6 +198,34 @@ export default function ChatConversationPage({
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleFileAttach = () => {
+    attachInputRef.current?.click();
+  };
+
+  const handleAttachChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !chatId) return;
+
+    try {
+      const fileUrl = URL.createObjectURL(file);
+      const message: Message = {
+        id: Date.now().toString(),
+        sender: "user",
+        content: null,
+        image_url: null,
+        audio_url: null,
+        file_url: fileUrl,
+        file_name: file.name,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, message]);
+    } catch (error) {
+      console.error("Error attaching file:", error);
+    } finally {
+      if (attachInputRef.current) attachInputRef.current.value = "";
     }
   };
 
@@ -217,6 +252,8 @@ export default function ChatConversationPage({
           content: null,
           image_url: null,
           audio_url: audioUrl,
+          file_url: null,
+          file_name: null,
           created_at: new Date().toISOString(),
         };
 
@@ -416,6 +453,18 @@ export default function ChatConversationPage({
                         />
                       </div>
                     )}
+                    {message.file_url && message.file_name && (
+                      <div className="mb-2">
+                        <a
+                          href={message.file_url}
+                          download={message.file_name}
+                          className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-black/5 transition-colors"
+                        >
+                          <Paperclip className="size-4 shrink-0" />
+                          <span className="truncate max-w-[200px]">{message.file_name}</span>
+                        </a>
+                      </div>
+                    )}
                     {message.audio_url && (
                       <div className="mb-2">
                         <audio controls src={message.audio_url} className="w-full" />
@@ -449,7 +498,7 @@ export default function ChatConversationPage({
           <div className="px-4 py-4 w-full max-w-full">
             <div className="flex gap-2 w-full">
             <div className="hidden sm:flex gap-1">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={handleFileAttach}>
                 <Paperclip className="size-4" />
               </Button>
               <Button variant="ghost" size="icon" onClick={handlePhotoUpload}>
@@ -462,6 +511,12 @@ export default function ChatConversationPage({
               accept="image/*"
               className="hidden"
               onChange={handleFileChange}
+            />
+            <input
+              type="file"
+              ref={attachInputRef}
+              className="hidden"
+              onChange={handleAttachChange}
             />
             <Input
               value={newMessage}
