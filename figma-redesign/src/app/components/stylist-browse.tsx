@@ -1,9 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import { Search, SlidersHorizontal, Star, MapPin, Award } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+
+const FILTER_OPTIONS = [
+  { label: "All Stylists", value: null },
+  { label: "Hair Stylists", value: "hair" },
+  { label: "Fashion Stylists", value: "fashion" },
+  { label: "Makeup Artists", value: "makeup" },
+];
 
 export interface Stylist {
   id: number | string;
@@ -101,8 +111,19 @@ interface StylistBrowseProps {
   onFilterChange?: (specialty: string | null) => void;
 }
 
-export function StylistBrowse({ onStylistClick, stylists: externalStylists, error }: StylistBrowseProps) {
-  const stylists = externalStylists ?? defaultStylists;
+export function StylistBrowse({ onStylistClick, stylists: externalStylists, error, selectedSpecialty, onFilterChange }: StylistBrowseProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const allStylists = externalStylists ?? defaultStylists;
+
+  const stylists = allStylists.filter((s) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.specialty.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {error && (
@@ -126,33 +147,44 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 size-4 sm:size-5 text-muted-foreground" />
-              <Input 
-                placeholder="Search by name, specialty, or location..." 
+              <Input
+                placeholder="Search by name or specialty..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 sm:pl-12 h-12 sm:h-14 text-sm sm:text-base bg-background border-border/50"
               />
             </div>
 
             {/* Quick Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
-              <Badge variant="secondary" className="px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap text-xs sm:text-sm">
-                All Stylists
-              </Badge>
-              <Badge variant="outline" className="px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer hover:bg-secondary transition-colors whitespace-nowrap text-xs sm:text-sm">
-                Hair Stylists
-              </Badge>
-              <Badge variant="outline" className="px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer hover:bg-secondary transition-colors whitespace-nowrap text-xs sm:text-sm">
-                Fashion Stylists
-              </Badge>
-              <Badge variant="outline" className="px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer hover:bg-secondary transition-colors whitespace-nowrap text-xs sm:text-sm">
-                Makeup Artists
-              </Badge>
-              <Badge variant="outline" className="px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer hover:bg-secondary transition-colors whitespace-nowrap text-xs sm:text-sm">
-                Verified Only
-              </Badge>
+              {FILTER_OPTIONS.map((opt) => {
+                const isActive = selectedSpecialty === opt.value;
+                return (
+                  <Badge
+                    key={opt.label}
+                    variant={isActive ? "secondary" : "outline"}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 cursor-pointer transition-colors whitespace-nowrap text-xs sm:text-sm ${
+                      isActive
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-secondary"
+                    }`}
+                    onClick={() => onFilterChange?.(opt.value)}
+                  >
+                    {opt.label}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Empty state */}
+      {stylists.length === 0 && !error && (
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center text-muted-foreground">
+          No stylists found{searchQuery ? ` for "${searchQuery}"` : ""}.
+        </div>
+      )}
 
       {/* Stylists Grid */}
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-12">
