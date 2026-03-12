@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -30,7 +30,7 @@ type HistoryEntry = {
   description: string;
 };
 
-export default function WalletPage() {
+function WalletContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [minutesBalance, setMinutesBalance] = useState<number | null>(null);
@@ -353,5 +353,13 @@ export default function WalletPage() {
         </Tabs>
       </Card>
     </PageShell>
+  );
+}
+
+export default function WalletPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <WalletContent />
+    </Suspense>
   );
 }

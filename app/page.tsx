@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { StylistBrowseClient } from "./BrowseClient";
 import { type Stylist } from "../figma-redesign/src/app/components/stylist-browse";
@@ -68,5 +69,9 @@ export default async function BrowsePage() {
   // Keep backend logic but render SocialFeed instead
   // const { stylists, error } = await getInitialStylists();
 
-  return <SocialFeedClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <SocialFeedClient />
+    </Suspense>
+  );
 }
