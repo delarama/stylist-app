@@ -61,7 +61,12 @@ export function SocialFeed({ onStylistClick }: SocialFeedProps) {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        setError(data.error || "Failed to load posts");
+        const errMsg = data.error || "Failed to load posts";
+        setError(
+          errMsg.includes("<") || errMsg.length > 300
+            ? "Unable to load posts. Please try again later."
+            : errMsg
+        );
         return;
       }
 
@@ -96,7 +101,7 @@ export function SocialFeed({ onStylistClick }: SocialFeedProps) {
       setPosts(transformedPosts);
     } catch (err: any) {
       console.error("Error fetching posts:", err);
-      setError(err.message || "Failed to load posts");
+      setError("Unable to load posts. Please try again later.");
     } finally {
       setLoading(false);
     }

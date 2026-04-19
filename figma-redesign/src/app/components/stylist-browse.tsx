@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SlidersHorizontal, Star, MapPin, Award } from "lucide-react";
+import { Search, SlidersHorizontal, Star, MapPin, Award, X, Check } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -13,6 +13,21 @@ const FILTER_OPTIONS = [
   { label: "Hair Stylists", value: "hair" },
   { label: "Fashion Stylists", value: "fashion" },
   { label: "Makeup Artists", value: "makeup" },
+];
+
+type SortBy = "newest" | "top_rated";
+type MinRating = null | 4 | 4.5 | 5;
+
+const SORT_OPTIONS: { label: string; value: SortBy }[] = [
+  { label: "Newest", value: "newest" },
+  { label: "Top Rated", value: "top_rated" },
+];
+
+const RATING_OPTIONS: { label: string; value: MinRating }[] = [
+  { label: "Any rating", value: null },
+  { label: "4.0 & up", value: 4 },
+  { label: "4.5 & up", value: 4.5 },
+  { label: "5.0 only", value: 5 },
 ];
 
 export interface Stylist {
@@ -113,22 +128,45 @@ interface StylistBrowseProps {
 
 export function StylistBrowse({ onStylistClick, stylists: externalStylists, error, selectedSpecialty, onFilterChange }: StylistBrowseProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<SortBy>("newest");
+  const [minRating, setMinRating] = useState<MinRating>(null);
+
   const allStylists = externalStylists ?? defaultStylists;
 
-  const stylists = allStylists.filter((s) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      s.name.toLowerCase().includes(q) ||
-      s.specialty.toLowerCase().includes(q)
-    );
-  });
+  const activeFilterCount = (sortBy !== "newest" ? 1 : 0) + (minRating !== null ? 1 : 0);
+
+  const stylists = allStylists
+    .filter((s) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        if (!s.name.toLowerCase().includes(q) && !s.specialty.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+      if (minRating !== null) {
+        if (s.rating === null || s.rating < minRating) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "top_rated") {
+        return (b.rating ?? 0) - (a.rating ?? 0);
+      }
+      return 0; // "newest" — preserve server order
+    });
+
+  const handleClearFilters = () => {
+    setSortBy("newest");
+    setMinRating(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {error && (
         <div className="max-w-7xl mx-auto px-4 py-4 text-sm text-destructive">{error}</div>
       )}
+
       {/* Header */}
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 sm:py-6">
@@ -138,12 +176,22 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
                 <h1 className="text-2xl sm:text-3xl tracking-tight mb-1 sm:mb-2">Find Your Stylist</h1>
                 <p className="text-sm sm:text-base text-muted-foreground">Discover talented professionals near you</p>
               </div>
-              <Button variant="outline" size="default" className="hidden sm:flex gap-2">
+              <Button
+                variant="outline"
+                size="default"
+                className="flex gap-2 relative"
+                onClick={() => setShowFilters(true)}
+              >
                 <SlidersHorizontal className="size-4" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
             </div>
-            
+
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 size-4 sm:size-5 text-muted-foreground" />
@@ -190,8 +238,8 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {stylists.map((stylist) => (
-            <Card 
-              key={stylist.id} 
+            <Card
+              key={stylist.id}
               className="overflow-hidden cursor-pointer group hover:shadow-xl transition-all duration-300 border-border/50"
               onClick={() => onStylistClick(stylist.id)}
             >
@@ -266,6 +314,108 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
           ))}
         </div>
       </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowFilters(false)}
+          />
+
+          {/* Panel */}
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-background shadow-2xl">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between border-b px-6 py-5">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg">Filters</h2>
+                {activeFilterCount > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {activeFilterCount} active
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilters(false)}
+              >
+                <X className="size-5" />
+              </Button>
+            </div>
+
+            {/* Panel Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+
+              {/* Sort By */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Sort By</h3>
+                <div className="space-y-2">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSortBy(opt.value)}
+                      className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${
+                        sortBy === opt.value
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {sortBy === opt.value && <Check className="size-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Minimum Rating */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Minimum Rating</h3>
+                <div className="space-y-2">
+                  {RATING_OPTIONS.map((opt) => (
+                    <button
+                      key={String(opt.value)}
+                      onClick={() => setMinRating(opt.value)}
+                      className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 text-sm transition-colors ${
+                        minRating === opt.value
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {opt.value !== null && (
+                          <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                        )}
+                        <span>{opt.label}</span>
+                      </div>
+                      {minRating === opt.value && <Check className="size-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Panel Footer */}
+            <div className="border-t px-6 py-4 flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleClearFilters}
+                disabled={activeFilterCount === 0}
+              >
+                Clear all
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => setShowFilters(false)}
+              >
+                Show {stylists.length} results
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

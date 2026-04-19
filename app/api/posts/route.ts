@@ -51,8 +51,11 @@ export async function GET(request: Request) {
 
     if (postsError) {
       console.error("Error fetching posts:", postsError);
+      const msg = postsError.message?.includes("<") || (postsError.message?.length ?? 0) > 300
+        ? "Service temporarily unavailable. Please try again later."
+        : postsError.message;
       return NextResponse.json(
-        { ok: false, error: postsError.message, details: postsError },
+        { ok: false, error: msg },
         { status: 500 }
       );
     }
@@ -82,8 +85,11 @@ export async function GET(request: Request) {
     );
   } catch (error: any) {
     console.error("Unexpected error in /api/posts:", error);
+    const msg = !error.message || error.message.includes("<") || error.message.length > 300
+      ? "Service temporarily unavailable. Please try again later."
+      : error.message;
     return NextResponse.json(
-      { ok: false, error: error.message || "An unexpected error occurred" },
+      { ok: false, error: msg },
       { status: 500 }
     );
   }
