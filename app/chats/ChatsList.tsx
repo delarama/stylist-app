@@ -30,10 +30,14 @@ export function ChatsList({ onChatSelect }: ChatsListProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchChats() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
+        if (cancelled) return;
+
         if (sessionError || !session?.access_token) {
           setError("Please sign in to view your messages");
           setLoading(false);
@@ -49,6 +53,8 @@ export function ChatsList({ onChatSelect }: ChatsListProps) {
         });
         const data = await res.json();
 
+        if (cancelled) return;
+
         if (!data.ok) {
           setError(data.error || "Failed to load chats");
           return;
@@ -58,20 +64,28 @@ export function ChatsList({ onChatSelect }: ChatsListProps) {
         setChats(fetchedChats);
 
         // On desktop, if no chat is selected and we have chats, select the first one
-        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-          if (pathname === "/chats" && fetchedChats.length > 0 && onChatSelect) {
-            onChatSelect(fetchedChats[0].id);
-          }
+        if (
+          !cancelled &&
+          typeof window !== "undefined" &&
+          window.innerWidth >= 1024 &&
+          pathname === "/chats" &&
+          fetchedChats.length > 0 &&
+          onChatSelect
+        ) {
+          onChatSelect(fetchedChats[0].id);
         }
       } catch (err) {
-        setError("Failed to load chats");
-        console.error("Error fetching chats:", err);
+        if (!cancelled) {
+          setError("Failed to load chats");
+          console.error("Error fetching chats:", err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchChats();
+    return () => { cancelled = true; };
   }, [pathname, onChatSelect]);
 
   if (loading) {

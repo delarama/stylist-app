@@ -28,11 +28,15 @@ export default function ChatsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchChats() {
       try {
         // Get session to extract access token
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
+        if (cancelled) return;
+
         if (sessionError || !session?.access_token) {
           setError("Please sign in to view your messages");
           setLoading(false);
@@ -48,6 +52,8 @@ export default function ChatsPage() {
         });
         const data = await res.json();
 
+        if (cancelled) return;
+
         if (!data.ok) {
           setError(data.error || "Failed to load chats");
           return;
@@ -57,21 +63,33 @@ export default function ChatsPage() {
         setChats(fetchedChats);
 
         // On desktop, if no chat is selected and we have chats, redirect to most recent
-        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
-          if (pathname === "/chats" && fetchedChats.length > 0) {
+        if (
+          !cancelled &&
+          typeof window !== "undefined" &&
+          window.innerWidth >= 1024 &&
+          pathname === "/chats" &&
+          fetchedChats.length > 0
+        ) {
+          try {
             router.replace(`/chats/${fetchedChats[0].id}`);
+          } catch {
+            // Navigation failed — stay on /chats
           }
         }
       } catch (err) {
-        setError("Failed to load chats");
-        console.error("Error fetching chats:", err);
+        if (!cancelled) {
+          setError("Failed to load chats");
+          console.error("Error fetching chats:", err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchChats();
-  }, [pathname, router]);
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <>
