@@ -11,7 +11,7 @@ async function getInitialStylists() {
   // Fetch profiles - only show stylists (is_stylist = true)
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
-    .select("id, display_name, headline, avatar_url, created_at")
+    .select("id, display_name, headline, avatar_url, specialties, rate_per_minute, created_at")
     .eq("is_stylist", true)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -53,8 +53,8 @@ async function getInitialStylists() {
       image: profile.avatar_url || null,
       rating: stats?.avg_rating ?? null,
       reviews: stats?.review_count ?? null,
-      location: undefined,
-      price: undefined,
+      specialties: profile.specialties ?? [],
+      ratePerMinute: profile.rate_per_minute ?? null,
       verified: false,
       tags: undefined,
     };

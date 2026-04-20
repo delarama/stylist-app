@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     // Build query for stylists only (is_stylist = true)
     let query = supabase
       .from("profiles")
-      .select("id, display_name, headline, avatar_url, specialties")
+      .select("id, display_name, headline, avatar_url, specialties, rate_per_minute")
       .eq("is_stylist", true);
 
     // Filter by specialty keyword against headline
@@ -64,6 +64,8 @@ export async function GET(request: Request) {
         display_name: profile.display_name,
         headline: profile.headline,
         avatar_url: profile.avatar_url,
+        specialties: profile.specialties ?? [],
+        rate_per_minute: profile.rate_per_minute ?? null,
         avg_rating: stats?.avg_rating ?? null,
         review_count: stats?.review_count ?? null,
       };

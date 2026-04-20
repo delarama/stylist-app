@@ -38,7 +38,8 @@ export interface Stylist {
   rating: number | null;
   reviews: number | null;
   location?: string;
-  price?: string;
+  ratePerMinute?: number | null;
+  specialties?: string[];
   verified: boolean;
   tags?: string[];
 }
@@ -52,7 +53,8 @@ const defaultStylists: Stylist[] = [
     rating: 4.9,
     reviews: 127,
     location: "New York, NY",
-    price: "$$$",
+    ratePerMinute: 3.50,
+    specialties: ["hair", "balayage", "extensions"],
     verified: true,
     tags: ["Balayage", "Extensions", "Bridal"]
   },
@@ -64,7 +66,8 @@ const defaultStylists: Stylist[] = [
     rating: 5.0,
     reviews: 89,
     location: "Los Angeles, CA",
-    price: "$$$$",
+    ratePerMinute: 5.00,
+    specialties: ["fashion", "wardrobe", "editorial"],
     verified: true,
     tags: ["Editorial", "Celebrity", "Personal Shopping"]
   },
@@ -76,7 +79,8 @@ const defaultStylists: Stylist[] = [
     rating: 4.8,
     reviews: 203,
     location: "Miami, FL",
-    price: "$$",
+    ratePerMinute: 2.50,
+    specialties: ["makeup", "bridal", "airbrushing"],
     verified: true,
     tags: ["Bridal", "Editorial", "Airbrushing"]
   },
@@ -88,7 +92,8 @@ const defaultStylists: Stylist[] = [
     rating: 4.9,
     reviews: 156,
     location: "Chicago, IL",
-    price: "$$$",
+    ratePerMinute: 4.00,
+    specialties: ["fashion", "wardrobe", "color analysis"],
     verified: true,
     tags: ["Wardrobe Consulting", "Color Analysis", "Closet Edit"]
   },
@@ -100,7 +105,8 @@ const defaultStylists: Stylist[] = [
     rating: 4.7,
     reviews: 94,
     location: "Austin, TX",
-    price: "$$",
+    ratePerMinute: 2.00,
+    specialties: ["hair", "highlights", "curly hair"],
     verified: false,
     tags: ["Curly Hair", "Highlights", "Cutting"]
   },
@@ -112,7 +118,8 @@ const defaultStylists: Stylist[] = [
     rating: 5.0,
     reviews: 178,
     location: "Seattle, WA",
-    price: "$$$$",
+    ratePerMinute: 6.00,
+    specialties: ["hair", "bridal", "makeup"],
     verified: true,
     tags: ["Bridal", "Updo", "Special Events"]
   }
@@ -122,12 +129,11 @@ interface StylistBrowseProps {
   onStylistClick: (id: number | string) => void;
   stylists?: Stylist[];
   error?: string | null;
-  selectedSpecialty?: string | null;
-  onFilterChange?: (specialty: string | null) => void;
 }
 
-export function StylistBrowse({ onStylistClick, stylists: externalStylists, error, selectedSpecialty, onFilterChange }: StylistBrowseProps) {
+export function StylistBrowse({ onStylistClick, stylists: externalStylists, error }: StylistBrowseProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>("newest");
   const [minRating, setMinRating] = useState<MinRating>(null);
@@ -136,14 +142,30 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
 
   const activeFilterCount = (sortBy !== "newest" ? 1 : 0) + (minRating !== null ? 1 : 0);
 
+  const toggleFilter = (value: string | null) => {
+    if (value === null) {
+      setSelectedFilters([]);
+      return;
+    }
+    setSelectedFilters((prev) =>
+      prev.includes(value) ? prev.filter((f) => f !== value) : [...prev, value]
+    );
+  };
+
   const stylists = allStylists
     .filter((s) => {
+      // Search: AND with badge filters; searches name, specialty, and specialties array
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        if (!s.name.toLowerCase().includes(q) && !s.specialty.toLowerCase().includes(q)) {
-          return false;
-        }
+        const haystack = [s.name, s.specialty, ...(s.specialties ?? [])].join(" ").toLowerCase();
+        if (!haystack.includes(q)) return false;
       }
+      // Badge filters: OR across selected categories
+      if (selectedFilters.length > 0) {
+        const haystack = [s.specialty, ...(s.specialties ?? [])].join(" ").toLowerCase();
+        if (!selectedFilters.some((f) => haystack.includes(f))) return false;
+      }
+      // Min rating filter
       if (minRating !== null) {
         if (s.rating === null || s.rating < minRating) return false;
       }
@@ -157,6 +179,8 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
     });
 
   const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedFilters([]);
     setSortBy("newest");
     setMinRating(null);
   };
@@ -206,7 +230,9 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
             {/* Quick Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
               {FILTER_OPTIONS.map((opt) => {
-                const isActive = selectedSpecialty === opt.value;
+                const isActive = opt.value === null
+                  ? selectedFilters.length === 0
+                  : selectedFilters.includes(opt.value);
                 return (
                   <Badge
                     key={opt.label}
@@ -216,7 +242,7 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "hover:bg-secondary"
                     }`}
-                    onClick={() => onFilterChange?.(opt.value)}
+                    onClick={() => toggleFilter(opt.value)}
                   >
                     {opt.label}
                   </Badge>
@@ -229,8 +255,11 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
 
       {/* Empty state */}
       {stylists.length === 0 && !error && (
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center text-muted-foreground">
-          No stylists found{searchQuery ? ` for "${searchQuery}"` : ""}.
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+          <p className="text-muted-foreground mb-4">No stylists match your search</p>
+          <Button variant="outline" size="sm" onClick={handleClearFilters}>
+            Clear filters
+          </Button>
         </div>
       )}
 
@@ -270,9 +299,9 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
                         {stylist.specialty}
                       </p>
                     </div>
-                    {stylist.price && (
-                      <div className="text-sm sm:text-base text-muted-foreground ml-2">
-                        {stylist.price}
+                    {stylist.ratePerMinute != null && (
+                      <div className="text-sm sm:text-base text-muted-foreground ml-2 whitespace-nowrap">
+                        ${stylist.ratePerMinute.toFixed(2)}/min
                       </div>
                     )}
                   </div>
