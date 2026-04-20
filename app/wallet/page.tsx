@@ -299,7 +299,8 @@ function WalletContent() {
                     </div>
                   ) : entries.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">No transactions yet</p>
+                      <p className="text-sm font-medium text-foreground mb-1">No transactions yet</p>
+                      <p className="text-sm text-muted-foreground">Transactions will appear here after you add funds or start a chat.</p>
                     </div>
                   ) : (
                     entries.map((entry) => {

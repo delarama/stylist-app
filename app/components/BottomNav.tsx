@@ -71,17 +71,22 @@ export function BottomNav() {
     setIsCreateModalOpen(true);
   };
 
+  // Hide nav inside an individual chat thread or when create-post modal is open
+  const isIndividualChat = pathname.startsWith("/chats/") && pathname !== "/chats";
+  const hideNav = isIndividualChat || isCreateModalOpen;
+
   return (
     <>
-      <nav 
-        className="
-          fixed bottom-0 left-1/2 -translate-x-1/2
-          w-full max-w-[420px]
-          md:max-w-7xl
-          border-t bg-white/90 backdrop-blur
-          supports-[backdrop-filter]:bg-white/70
-          z-50
-        "
+      <nav
+        className={cn(
+          "fixed bottom-0 left-1/2 -translate-x-1/2",
+          "w-full max-w-[420px]",
+          "md:max-w-7xl",
+          "border-t bg-white/90 backdrop-blur",
+          "supports-[backdrop-filter]:bg-white/70",
+          "z-50 transition-transform duration-200",
+          hideNav && "translate-y-full pointer-events-none",
+        )}
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
       >
         <div className="flex justify-around items-center h-[72px]">
@@ -149,13 +154,15 @@ export function BottomNav() {
       </nav>
 
       {/* Floating Create Button (Desktop) */}
-      <button
-        onClick={handleCreatePostClick}
-        className="hidden lg:flex fixed bottom-24 right-8 size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow items-center justify-center z-40"
-        style={{ marginBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
-      >
-        <Plus className="size-6" />
-      </button>
+      {!isIndividualChat && (
+        <button
+          onClick={handleCreatePostClick}
+          className="hidden lg:flex fixed bottom-24 right-8 size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow items-center justify-center z-40"
+          style={{ marginBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
+        >
+          <Plus className="size-6" />
+        </button>
+      )}
 
       <CreatePostModal
         isOpen={isCreateModalOpen}

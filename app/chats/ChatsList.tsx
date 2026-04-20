@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { Search } from "lucide-react";
 import { formatRelativeTime } from "@/lib/date-utils";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/app/components/ui/button";
@@ -160,9 +161,15 @@ export function ChatsList({ onChatSelect }: ChatsListProps) {
           </svg>
         </div>
         <h3 className="text-lg font-semibold mb-2 text-neutral-900">No messages yet</h3>
-        <p className="text-sm text-neutral-500">
-          Start a conversation with a stylist to see your chats here.
+        <p className="text-sm text-neutral-500 mb-4">
+          Start a chat with a stylist to get advice.
         </p>
+        <Link href="/browse">
+          <Button variant="outline" className="gap-2">
+            <Search className="size-4" />
+            Browse Stylists
+          </Button>
+        </Link>
       </div>
     );
   }
