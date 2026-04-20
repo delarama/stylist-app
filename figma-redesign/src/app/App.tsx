@@ -12,13 +12,14 @@ import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "./components/ui/sonner";
+import { useWallet } from "../contexts/WalletContext";
 
 type View = "feed" | "browse" | "profile" | "chat" | "wallet" | "user-profile";
 
 export default function App() {
+  const { balance: userBalance, updateBalance } = useWallet();
   const [currentView, setCurrentView] = useState<View>("feed");
   const [selectedStylistId, setSelectedStylistId] = useState<number | null>(null);
-  const [userBalance, setUserBalance] = useState(25.00); // Low balance to demo paywall
   const [showRateReview, setShowRateReview] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [stylistToRate, setStylistToRate] = useState<{ id: number; name: string; avatar: string } | null>(null);
@@ -75,7 +76,7 @@ export default function App() {
   };
 
   const handleAddFunds = (amount: number) => {
-    setUserBalance(prev => prev + amount);
+    updateBalance(userBalance + amount);
     setShowPaywall(false);
     toast.success(`Successfully added $${amount.toFixed(2)} to your wallet`);
     // After adding funds, navigate to chat

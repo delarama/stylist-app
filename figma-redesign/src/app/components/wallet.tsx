@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Plus, Download, CreditCard, DollarSign, TrendingUp } from "lucide-react";
 import { Button } from "./ui/button";
+import { useWallet } from "../../contexts/WalletContext";
 import { Card } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Badge } from "./ui/badge";
@@ -93,7 +94,7 @@ interface WalletProps {
 }
 
 export function Wallet({ onBack }: WalletProps) {
-  const balance = 425.00;
+  const { balance } = useWallet();
   const totalSpent = transactions
     .filter(t => t.type === "payment")
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
