@@ -306,9 +306,7 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
                   </div>
                 </div>
 
-                <Button className="w-full" size="default">
-                  View Profile
-                </Button>
+
               </div>
             </Card>
           ))}

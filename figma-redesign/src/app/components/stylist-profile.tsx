@@ -239,14 +239,14 @@ export function StylistProfile({ stylistId, onBack, onChat }: StylistProfileProp
               <br />
               💇‍♀️ Balayage • Extensions • Bridal
               <br />
-              📧 DM for bookings
+              💬 Chat to book a session
             </p>
 
             {/* Action Buttons */}
             <div className="flex gap-3">
               <Button onClick={onChat} size="lg" className="flex-1 sm:flex-initial gap-2">
                 <MessageCircle className="size-4" />
-                Message
+                Start Chat
               </Button>
               <Button variant="outline" size="lg" className="flex-1 sm:flex-initial">
                 Follow
