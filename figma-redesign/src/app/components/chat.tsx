@@ -3,8 +3,23 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Card } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 interface Message {
   id: number;
@@ -22,6 +37,7 @@ interface Conversation {
   timestamp: string;
   unread: number;
   online: boolean;
+  ratePerMinute: number;
 }
 
 const conversations: Conversation[] = [
@@ -32,7 +48,8 @@ const conversations: Conversation[] = [
     lastMessage: "I'd love to work with you! When are you free?",
     timestamp: "2m ago",
     unread: 2,
-    online: true
+    online: true,
+    ratePerMinute: 3.50
   },
   {
     id: 2,
@@ -41,7 +58,8 @@ const conversations: Conversation[] = [
     lastMessage: "Thanks for reaching out! Let me send you some portfolio...",
     timestamp: "1h ago",
     unread: 0,
-    online: true
+    online: true,
+    ratePerMinute: 5.00
   },
   {
     id: 3,
@@ -50,7 +68,8 @@ const conversations: Conversation[] = [
     lastMessage: "Perfect! I'll see you then.",
     timestamp: "3h ago",
     unread: 0,
-    online: false
+    online: false,
+    ratePerMinute: 2.50
   },
   {
     id: 4,
@@ -59,7 +78,8 @@ const conversations: Conversation[] = [
     lastMessage: "That sounds great! I have availability next week.",
     timestamp: "1d ago",
     unread: 0,
-    online: false
+    online: false,
+    ratePerMinute: 4.00
   }
 ];
 
@@ -113,6 +133,7 @@ export function Chat({ onBack, onEndChat, userBalance, onShowPaywall }: ChatProp
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState("");
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [showEndChatDialog, setShowEndChatDialog] = useState(false);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -207,9 +228,9 @@ export function Chat({ onBack, onEndChat, userBalance, onShowPaywall }: ChatProp
         {selectedConversation && (
           <div className="p-4 border-b flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleMobileBack}
                 className="sm:hidden -ml-2"
               >
@@ -226,20 +247,58 @@ export function Chat({ onBack, onEndChat, userBalance, onShowPaywall }: ChatProp
               </div>
               <div>
                 <h3 className="text-sm sm:text-base">{selectedConversation.stylistName}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {selectedConversation.online ? 'Active now' : 'Offline'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                    <span className="size-1.5 rounded-full bg-green-500 inline-block" />
+                    Active
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    · ${selectedConversation.ratePerMinute.toFixed(2)}/min
+                  </span>
+                </div>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => onEndChat?.(selectedChat)}
-            >
-              <MoreVertical className="size-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                  onSelect={() => setShowEndChatDialog(true)}
+                >
+                  End Chat
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
+
+        {/* End Chat confirmation dialog */}
+        <AlertDialog open={showEndChatDialog} onOpenChange={setShowEndChatDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>End this chat session?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You won't be charged for any further time. You'll be asked to leave a review.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowEndChatDialog(false);
+                  onEndChat?.(selectedChat);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                End Chat
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4 sm:p-6">

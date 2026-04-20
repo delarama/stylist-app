@@ -18,6 +18,22 @@ import { supabase } from "@/lib/supabase";
 import { ImageWithFallback } from "@/app/components/ImageWithFallback";
 import { Card } from "@/app/components/ui/card";
 import { ChatsList } from "../ChatsList";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 
 interface Message {
   id: string;
@@ -55,14 +71,14 @@ export default function ChatConversationPage({
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [chatNotFound, setChatNotFound] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showEndChatDialog, setShowEndChatDialog] = useState(false);
   const [endingChat, setEndingChat] = useState(false);
   const [endChatError, setEndChatError] = useState<string | null>(null);
+  const [stylistRate, setStylistRate] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Resolve params
   useEffect(() => {
@@ -98,12 +114,13 @@ export default function ChatConversationPage({
         // Fetch stylist profile
         const { data: profile } = await supabase
           .from("profiles")
-          .select("display_name, headline, avatar_url")
+          .select("display_name, headline, avatar_url, rate_per_minute")
           .eq("id", chat.stylist_id)
           .maybeSingle();
 
         if (profile) {
           setStylistProfile(profile);
+          setStylistRate(profile.rate_per_minute ?? null);
         }
 
         // TODO: Fetch messages from messages table when available
@@ -124,19 +141,6 @@ export default function ChatConversationPage({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Close menu on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !chatId || sending) return;
@@ -304,7 +308,7 @@ export default function ChatConversationPage({
         return;
       }
 
-      setShowMenu(false);
+      setShowEndChatDialog(false);
       const elapsedSeconds =
         (Date.now() - new Date(chatData.created_at).getTime()) / 1000;
 
@@ -393,30 +397,57 @@ export default function ChatConversationPage({
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-medium">{stylistName}</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {stylistHeadline}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                <span className="size-1.5 rounded-full bg-green-500 inline-block" />
+                Active
+              </span>
+              {stylistRate != null && (
+                <span className="text-xs text-muted-foreground">· ${stylistRate.toFixed(2)}/min</span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="relative" ref={menuRef}>
-          <Button variant="ghost" size="icon" onClick={() => setShowMenu(!showMenu)}>
-            <MoreVertical className="size-4" />
-          </Button>
-          {showMenu && (
-            <Card className="absolute right-0 mt-2 w-56 p-2 bg-white shadow-lg rounded-md border z-40">
-            {endChatError && (
-              <p className="px-3 py-2 text-xs text-destructive">{endChatError}</p>
-            )}
-            <button
-              onClick={handleEndChat}
-              disabled={endingChat}
-              className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted rounded-sm disabled:opacity-50"
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive cursor-pointer"
+              onSelect={() => setShowEndChatDialog(true)}
             >
-              {endingChat ? "Ending..." : "End chat"}
-            </button>
-          </Card>
-          )}
-        </div>
+              End Chat
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <AlertDialog open={showEndChatDialog} onOpenChange={setShowEndChatDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>End this chat session?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You won't be charged for any further time. You'll be asked to leave a review.
+                {endChatError && (
+                  <span className="block mt-2 text-destructive text-sm">{endChatError}</span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={endingChat}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleEndChat}
+                disabled={endingChat}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {endingChat ? "Ending..." : "End Chat"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
         {/* Messages Container */}
