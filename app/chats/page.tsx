@@ -96,7 +96,7 @@ export default function ChatsPage() {
     <>
       {/* Left Panel - Always visible on desktop */}
       <div className="lg:border-r lg:border-neutral-200 lg:overflow-y-auto lg:h-full">
-        <div className="px-4 pt-6 pb-24 lg:pb-6">
+        <div className="px-4 pt-6 pb-32 lg:pb-6" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}>
         {/* Header with 3-column grid */}
         <div className="grid grid-cols-3 items-center mb-4">
           <button
