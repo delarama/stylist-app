@@ -528,11 +528,23 @@ export default function ChatConversationPage({
         <div className="fixed lg:sticky bottom-16 lg:bottom-0 left-0 right-0 lg:left-auto lg:right-auto border-t bg-white shrink-0 w-full z-30 lg:z-auto lg:w-full">
           <div className="px-4 py-4 w-full max-w-full">
             <div className="flex gap-2 w-full">
-            <div className="hidden sm:flex gap-1">
-              <Button variant="ghost" size="icon" onClick={handleFileAttach}>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleFileAttach}
+                title="Attach file (PDF, doc, etc.)"
+                aria-label="Attach file"
+              >
                 <Paperclip className="size-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handlePhotoUpload}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePhotoUpload}
+                title="Attach photo or image"
+                aria-label="Attach photo"
+              >
                 <ImageIcon className="size-4" />
               </Button>
             </div>
