@@ -35,8 +35,8 @@ export function BottomNav() {
   }, []);
 
   const navItems = [
-    { href: "/", label: "Feed", icon: LayoutGrid },
-    { href: "/browse", label: "Browse", icon: Search },
+    { href: "/", label: "For You", icon: LayoutGrid },
+    { href: "/browse", label: "Discover", icon: Search },
   ];
 
   const rightNavItems = [

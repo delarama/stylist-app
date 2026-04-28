@@ -143,7 +143,7 @@ export function SocialFeed({ onStylistClick }: SocialFeedProps) {
       <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl tracking-tight">Discover</h1>
+            <h1 className="text-2xl sm:text-3xl tracking-tight">For You</h1>
             <Badge variant="secondary" className="gap-1.5">
               <Sparkles className="size-3" />
               Social Marketplace

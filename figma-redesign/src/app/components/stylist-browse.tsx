@@ -197,8 +197,8 @@ export function StylistBrowse({ onStylistClick, stylists: externalStylists, erro
           <div className="flex flex-col gap-4 sm:gap-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl sm:text-3xl tracking-tight mb-1 sm:mb-2">Find Your Stylist</h1>
-                <p className="text-sm sm:text-base text-muted-foreground">Discover talented professionals near you</p>
+                <h1 className="text-2xl sm:text-3xl tracking-tight mb-1 sm:mb-2">Discover</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Find talented stylists near you</p>
               </div>
               <Button
                 variant="outline"
