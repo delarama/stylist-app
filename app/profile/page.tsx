@@ -721,10 +721,10 @@ export default function ProfilePage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="size-5 text-primary" />
-                      <h3 className="text-lg sm:text-xl">Offer Services as a Stylist</h3>
+                      <h3 className="text-lg sm:text-xl">Earn doing what you love</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Enable this to appear in the marketplace and start connecting with clients
+                      Turn on to list your services, get discovered by clients, and get paid — all in one place
                     </p>
                   </div>
                   <Switch
@@ -739,9 +739,9 @@ export default function ProfilePage() {
               {isStylist && (
                 <Card className="p-4 sm:p-6">
                   <div className="mb-4">
-                    <h3 className="text-lg sm:text-xl mb-2">Select your specialties</h3>
+                    <h3 className="text-lg sm:text-xl mb-2">What do you do?</h3>
                     <p className="text-sm text-muted-foreground">
-                      Choose all that apply to your services
+                      Select every specialty you offer — clients filter by these
                     </p>
                   </div>
                   
@@ -779,7 +779,7 @@ export default function ProfilePage() {
                     <p className="mt-4 text-sm text-destructive">{stylistError}</p>
                   )}
                   {stylistSuccess && (
-                    <p className="mt-4 text-sm text-green-600">Saved</p>
+                    <p className="mt-4 text-sm text-green-600">You&rsquo;re live — clients can find you now</p>
                   )}
                 </Card>
               )}
@@ -792,7 +792,7 @@ export default function ProfilePage() {
                     disabled={savingStylist}
                     size="lg"
                   >
-                    {savingStylist ? "Saving..." : "Save"}
+                    {savingStylist ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               )}

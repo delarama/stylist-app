@@ -314,10 +314,10 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="size-5 text-primary" />
-                      <h3 className="text-lg sm:text-xl">Offer Services as a Stylist</h3>
+                      <h3 className="text-lg sm:text-xl">Earn doing what you love</h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Enable this to appear in the marketplace and start connecting with clients
+                      Turn on to list your services, get discovered by clients, and get paid — all in one place
                     </p>
                   </div>
                   <Switch 
@@ -339,9 +339,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                           !
                         </div>
                         <div>
-                          <h4 className="mb-1 text-amber-900 dark:text-amber-200">Complete Your Profile</h4>
+                          <h4 className="mb-1 text-amber-900 dark:text-amber-200">Almost there</h4>
                           <p className="text-sm text-amber-800 dark:text-amber-300">
-                            Fill out all required fields below to appear in search results and start receiving inquiries.
+                            Finish the fields below so clients can find and book you.
                           </p>
                         </div>
                       </div>
@@ -355,9 +355,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                           <Check className="size-3" />
                         </div>
                         <div>
-                          <h4 className="mb-1 text-green-900 dark:text-green-200">Profile Active!</h4>
+                          <h4 className="mb-1 text-green-900 dark:text-green-200">You&rsquo;re live!</h4>
                           <p className="text-sm text-green-800 dark:text-green-300">
-                            Your profile is complete and visible to clients searching for {specialtyOptions.find(s => s.id === selectedSpecialty)?.label}s.
+                            Clients searching for {specialtyOptions.find(s => s.id === selectedSpecialty)?.label}s can find and message you now.
                           </p>
                         </div>
                       </div>
@@ -367,9 +367,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   {/* Specialty Selection */}
                   <Card className="p-4 sm:p-6">
                     <div className="mb-4">
-                      <h3 className="text-lg sm:text-xl mb-2">Service Type</h3>
+                      <h3 className="text-lg sm:text-xl mb-2">What do you specialize in?</h3>
                       <p className="text-sm text-muted-foreground">
-                        Choose your primary specialty. This determines which filter category you appear under.
+                        Pick your primary service — this is how clients search for you in the marketplace.
                       </p>
                     </div>
                     
@@ -409,9 +409,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   {/* Professional Bio */}
                   <Card className="p-4 sm:p-6">
                     <div className="mb-4">
-                      <h3 className="text-lg sm:text-xl mb-2">Professional Bio</h3>
+                      <h3 className="text-lg sm:text-xl mb-2">About you</h3>
                       <p className="text-sm text-muted-foreground">
-                        Tell clients about your experience, expertise, and what makes you unique
+                        Tell clients what you do, how long you&rsquo;ve been doing it, and what sets you apart
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -423,7 +423,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                         maxLength={500}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>This will appear on your public profile</span>
+                        <span>Shown to clients on your public profile</span>
                         <span>{stylistBio.length}/500</span>
                       </div>
                     </div>
@@ -432,9 +432,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   {/* Pricing */}
                   <Card className="p-4 sm:p-6">
                     <div className="mb-4">
-                      <h3 className="text-lg sm:text-xl mb-2">Hourly Rate</h3>
+                      <h3 className="text-lg sm:text-xl mb-2">Your rate</h3>
                       <p className="text-sm text-muted-foreground">
-                        Set your starting rate for consultations
+                        Set your starting price per hour — you can always adjust it with individual clients
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -454,7 +454,7 @@ export function UserProfile({ onBack }: UserProfileProps) {
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        This is your base consultation rate. You can discuss specific pricing with clients.
+                        Clients see this as your starting rate. Final pricing is between you and them.
                       </p>
                     </div>
                   </Card>
@@ -462,9 +462,9 @@ export function UserProfile({ onBack }: UserProfileProps) {
                   {/* Portfolio Upload */}
                   <Card className="p-4 sm:p-6">
                     <div className="mb-4">
-                      <h3 className="text-lg sm:text-xl mb-2">Portfolio</h3>
+                      <h3 className="text-lg sm:text-xl mb-2">Show your work</h3>
                       <p className="text-sm text-muted-foreground">
-                        Showcase your best work (optional but recommended)
+                        Photos of your work build trust and get you more inquiries — add at least one
                       </p>
                     </div>
                     <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
@@ -481,35 +481,35 @@ export function UserProfile({ onBack }: UserProfileProps) {
                     <div className="size-16 sm:size-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 mx-auto mb-4 flex items-center justify-center">
                       <Sparkles className="size-8 sm:size-10 text-primary" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl mb-3">Share Your Talent</h3>
+                    <h3 className="text-xl sm:text-2xl mb-3">Start earning as a stylist</h3>
                     <p className="text-muted-foreground mb-6">
-                      Join our marketplace and connect with clients looking for your expertise. Set your own rates, manage your schedule, and grow your business.
+                      Get discovered by clients, chat about their needs, and get paid — all without leaving the app.
                     </p>
                     <ul className="text-sm text-left space-y-2 mb-6 inline-block">
                       <li className="flex items-center gap-2">
                         <Check className="size-4 text-green-500" />
-                        <span>Appear in search results</span>
+                        <span>Show up in client searches</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="size-4 text-green-500" />
-                        <span>Set your own pricing</span>
+                        <span>Set your own rate</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="size-4 text-green-500" />
-                        <span>Build your client base</span>
+                        <span>Chat directly with clients</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="size-4 text-green-500" />
-                        <span>Get paid securely</span>
+                        <span>Get paid securely in-app</span>
                       </li>
                     </ul>
-                    <Button 
-                      onClick={() => handleStylistToggle(true)} 
-                      size="lg" 
+                    <Button
+                      onClick={() => handleStylistToggle(true)}
+                      size="lg"
                       className="gap-2"
                     >
                       <Sparkles className="size-4" />
-                      Become a Stylist
+                      List my services
                     </Button>
                   </div>
                 </Card>
