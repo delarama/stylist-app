@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
@@ -27,6 +27,25 @@ export default function ChatsPage() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedQuery(value), 200);
+  }, []);
+
+  const filteredChats = debouncedQuery.trim()
+    ? chats.filter((chat) => {
+        const query = debouncedQuery.trim().toLowerCase();
+        const name = (chat.stylist?.display_name ?? "").toLowerCase();
+        const preview = (chat.stylist?.headline ?? "").toLowerCase();
+        return name.includes(query) || preview.includes(query);
+      })
+    : chats;
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +132,8 @@ export default function ChatsPage() {
         <div className="mb-4">
           <input
             type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
             placeholder="Search messages..."
             className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-black/10 focus:border-black/20 transition"
           />
@@ -192,9 +213,15 @@ export default function ChatsPage() {
               </Button>
             </Link>
           </div>
+        ) : filteredChats.length === 0 && debouncedQuery.trim() ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center">
+            <p className="text-sm text-neutral-500">
+              No chats match &ldquo;{debouncedQuery.trim()}&rdquo;
+            </p>
+          </div>
         ) : (
           <ul className="space-y-3">
-            {chats.map((chat) => {
+            {filteredChats.map((chat) => {
               const stylistName = chat.stylist?.display_name || "Unknown Stylist";
               const stylistAvatar = chat.stylist?.avatar_url || null;
               const lastMessage = chat.stylist?.headline || "Tap to chat";
